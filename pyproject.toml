@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "omOS_modules"
+version = "0.1.0"
+description = "ML modules for omOS"
+authors = ["openmind.org"]
+readme = "README.md"
+packages = [
+    { include = "omOS_speech", from = "src" },
+    { include = "omOS_utils", from = "src" },
+    { include = "omOS_vlm", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+pyaudio = "^0.2.13"
+numpy = "^2.0.2"
+websockets = "^14.0"
+opencv-python = "^4.5.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
+pytest-asyncio = "^0.19.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
