@@ -26,6 +26,8 @@ class Application:
         self.connection_processor: Optional[ConnectionProcessor] = None
         self.asr_processor: Optional[ASRProcessor] = None
         self.audio_source: Optional[AudioDeviceInput] = None
+        self.audio_input_streamer: Optional[AudioInputStream] = None
+        self.tts_processor: Optional[TTSProcessor] = None
         self.running: bool = False
 
         self.args.ws_port = self.args.ws_port or 6790
@@ -61,14 +63,8 @@ class Application:
         self.ws_client = ws.Client(url=self.args.remote_url)
         self.ws_client.start()
 
-        audio_streamer = AudioInputStream(audio_data_callback=self.ws_client.send_message)
-        audio_streamer.start()
-
-        audio_thread = threading.Thread(
-            target=audio_streamer.on_auido,
-            daemon=True
-        )
-        audio_thread.start()
+        self.audio_input_streamer = AudioInputStream(audio_data_callback=self.ws_client.send_message)
+        self.audio_input_streamer.start()
 
     def setup_asr_processing(self):
         self.ws_server = ws.Server(host=self.args.ws_host, port=self.args.ws_port)
@@ -145,6 +141,9 @@ class Application:
 
         if self.audio_source:
             self.audio_source.stop()
+
+        if self.audio_input_streamer:
+            self.audio_input_streamer.stop()
 
         if self.tts_processor:
             self.tts_processor.stop()
