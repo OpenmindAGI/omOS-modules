@@ -18,6 +18,39 @@ Run the following command to install the dependencies and set up the environment
 poetry install
 ```
 
+## Poetry Environment
+
+### Activate Environment
+
+Before running any code, activate the Poetry environment:
+
+```bash
+# Activate virtual environment
+poetry shell
+```
+
+> [!NOTE]
+>
+> The poetry shell command has been moved to a plugin: [poetry-plugin-shell](https://github.com/python-poetry/poetry-plugin-shell). Please follow the installation instructions before using it in version 2.
+
+## Quick Start Examples
+
+### Automatic Speech Recognition (ASR)
+
+To start the ASR module, run the following command:
+
+```bash
+python3 -m omOS-speech --remote-url=wss://api-asr.openmind.org
+```
+
+#### Example code
+
+You can find the example code in [ASR.py](./examples/ASR.py). Run it using:
+
+```python
+python3 ./examples/ASR.py
+```
+
 ## Modules
 
 ### omOS Speech
@@ -53,13 +86,13 @@ Vision-Language Module offering:
 	 ```bash
 	 git clone https://github.com/openmind-org/omOS-modules.git
 	 cd omOS-modules
-	 ```
+	```
 
 2. Install dependencies using Poetry:
 
 	 ```bash
 	 poetry install
-	 ```
+	```
 
 ### Adding Dependencies
 
