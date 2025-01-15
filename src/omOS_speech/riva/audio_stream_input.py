@@ -1,10 +1,12 @@
 import logging
 from queue import Queue, Empty
-from typing import Optional, Callable, Any
+from typing import Optional, Any
+
+from ..interface import AudioStreamInputInterface
 
 logger = logging.getLogger(__name__)
 
-class AudioStreamInput:
+class AudioStreamInput(AudioStreamInputInterface):
     """
     A class for managing audio input streaming from WebSocket connections.
 
@@ -18,7 +20,6 @@ class AudioStreamInput:
     """
     def __init__(self):
         self.running: bool = True
-        self.callback: Optional[Callable] = None
         self.audio_queue: Queue[Optional[bytes]] = Queue()
 
     def handle_ws_incoming_message(self, connection_id: str, message: Any):
@@ -68,14 +69,3 @@ class AudioStreamInput:
         Sets the running flag to False to stop processing.
         """
         self.running = False
-
-    def add(self, callback: Callable):
-        """
-        Add a callback function for audio processing.
-
-        Parameters
-        ----------
-        callback : Callable
-            Function to be called for processing audio data
-        """
-        self.callback = callback
