@@ -8,11 +8,13 @@ from omOS_utils import ws, http
 
 # Audio input from microphone
 from .audio import AudioInputStream
+
 # Riva ASR and TTS
 from .riva import (
     ASRProcessor, TTSProcessor, AudioDeviceInput, AudioStreamInput,
     add_asr_config_argparse_parameters, add_tts_argparse_parameters, add_connection_argparse_parameters
 )
+
 # Multithreading
 from .processor import ConnectionProcessor
 

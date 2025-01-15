@@ -7,9 +7,7 @@ import argparse
 from typing import Dict, Optional
 from omOS_utils import ws
 
-# TODO
-# The standard interface of the ASRProcessor and AudioStreamInput classes
-from ..riva import ASRProcessor, AudioStreamInput
+from ..interface import AudioStreamInputInterface, ASRProcessorInterface
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +31,8 @@ class ConnectionProcessor:
         self.args = arg
         self.asr_processor_class = asr_processor_class
         self.audio_stream_input_class = audio_stream_input_class
-        self.asr_processors: Dict[str, ASRProcessor] = {}
-        self.audio_sources: Dict[str, AudioStreamInput] = {}
+        self.asr_processors: Dict[str, ASRProcessorInterface] = {}
+        self.audio_sources: Dict[str, AudioStreamInputInterface] = {}
         self.processing_threads: Dict[str, threading.Thread] = {}
         self.ws_server: Optional[ws.Server] = None
 

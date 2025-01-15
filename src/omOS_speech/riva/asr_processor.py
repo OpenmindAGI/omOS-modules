@@ -14,7 +14,9 @@ try:
 except ModuleNotFoundError:
     client = None
 
-class ASRProcessor:
+from ..interface import ASRProcessorInterface
+
+class ASRProcessor(ASRProcessorInterface):
     """
     A class for processing real-time automatic speech recognition (ASR) using NVIDIA Riva.
 
