@@ -4,7 +4,7 @@ import requests
 import json
 import base64
 import threading
-import os
+import argparse
 from queue import Queue, Empty
 from typing import Optional, Callable
 
@@ -19,7 +19,7 @@ class AudioOutputStream():
     url : str
         The URL endpoint for the text-to-speech service
     rate : int, optional
-        The sampling rate in Hz for audio output (default: 16000)
+        The sampling rate in Hz for audio output (default: 8000)
     device : int, optional
         The output device index. If None, uses the first available output device
         (default: None)
@@ -27,7 +27,7 @@ class AudioOutputStream():
         A callback function to receive TTS state changes (active/inactive)
         (default: None)
     """
-    def __init__(self, url: str, rate: int = 16000, device: int = None, tts_state_callback: Optional[Callable] = None):
+    def __init__(self, url: str, rate: int = 8000, device: int = None, tts_state_callback: Optional[Callable] = None):
         self._url = url
         self._rate = rate
         self._device = device
@@ -183,10 +183,10 @@ class AudioOutputStream():
         Allows users to input text for TTS conversion until 'quit' is entered
         or KeyboardInterrupt is received.
         """
-        logger.info("Running interactive audio output stream")
+        logger.info("Running interactive audio output stream. Please enter text for TTS conversion.")
         try:
             while self.running:
-                user_input = input("> ")
+                user_input = input()
                 if user_input.lower() == 'quit':
                     break
                 self.add(user_input)
@@ -201,10 +201,22 @@ class AudioOutputStream():
         """
         self.running = False
 
-if __name__ == "__main__":
+def main():
+    """
+    Main function for running the audio output stream.
+    """
     logging.basicConfig(level=logging.INFO)
-    tts_url = os.getenv("TTS_URL", "http://localhost:6791")
-    audio_output = AudioOutputStream(tts_url)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tts-url", type=str, required=True, help="URL for the TTS service")
+    parser.add_argument("--device", type=int, default=None, help="Output device index")
+    parser.add_argument("--rate", type=int, default=8000, help="Audio output rate in Hz")
+    args = parser.parse_args()
+
+    audio_output = AudioOutputStream(args.tts_url, device=args.device, rate=args.rate)
     audio_output.start()
     audio_output.run_interactive()
     audio_output.stop()
+
+if __name__ == "__main__":
+    main()

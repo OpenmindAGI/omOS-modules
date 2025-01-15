@@ -53,6 +53,20 @@ python3 ./examples/ASR.py
 
 ### Text-to-Speech (TTS)
 
+To start the TTS module, run the following  command:
+
+```bash
+poetry run omOS-tts --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
+```
+
+#### Example code
+
+You can find the example code in [audio_output_stream.py](src/omOS_speech/audio/audio_output_stream.py). You can run it with the above command or using Python directly:
+
+```bash
+python3  -m omOS_speech.audio.audio_output_stream --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
+```
+
 ## Modules
 
 ### omOS Speech
