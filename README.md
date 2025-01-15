@@ -40,7 +40,7 @@ poetry shell
 To start the ASR module, run the following command:
 
 ```bash
-python3 -m omOS-speech --remote-url=wss://api-asr.openmind.org
+python3 -m omOS_speech --remote-url=wss://api-asr.openmind.org
 ```
 
 #### Example code
@@ -56,7 +56,7 @@ python3 ./examples/ASR.py
 To start the TTS module, run the following  command:
 
 ```bash
-poetry run omOS-tts --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
+poetry run omOS_tts --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
 ```
 
 #### Example code
