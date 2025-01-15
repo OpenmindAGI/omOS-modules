@@ -10,6 +10,9 @@ packages = [
     { include = "omOS_vlm", from = "src" }
 ]
 
+[tool.poetry.scripts]
+omOS-tts = "omOS_speech.audio.audio_output_stream:main"
+
 [tool.poetry.dependencies]
 python = ">=3.9"
 pyaudio = "^0.2.13"
