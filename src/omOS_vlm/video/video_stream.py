@@ -3,6 +3,7 @@ import cv2
 import time
 import base64
 import platform
+import threading
 from .video_utils import enumerate_video_devices
 from typing import Optional, Callable
 
@@ -10,8 +11,12 @@ logger = logging.getLogger(__name__)
 
 class VideoStream():
     def __init__(self, callback: Optional[Callable[[str], None]] = None):
-        self.running: bool = True
+        self._video_thread: Optional[threading.Thread] = None
+
+        # Callback for video data
         self.callback = callback
+
+        self.running: bool = True
 
     def on_video(self):
         devices = enumerate_video_devices()
@@ -45,3 +50,24 @@ class VideoStream():
 
         except Exception as e:
             logger.error(f"Error streaming video: {e}")
+
+    def _start_video_thread(self):
+        if self._video_thread is None or not self._video_thread.is_alive():
+            self._video_thread = threading.Thread(
+                target=self.on_video,
+                daemon=True
+            )
+            self._video_thread.start()
+            logger.info("Started video processing thread")
+
+    def start(self):
+        # Start video processing thread
+        self._start_video_thread()
+
+    def stop(self):
+        self.running = False
+
+        if self._video_thread and self._video_thread.is_alive():
+            self._video_thread.join(timeout=1.0)
+
+        logger.info("Stopped video processing thread")
