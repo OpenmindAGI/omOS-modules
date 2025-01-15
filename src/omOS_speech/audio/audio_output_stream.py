@@ -11,6 +11,22 @@ from typing import Optional, Callable
 logger = logging.getLogger(__name__)
 
 class AudioOutputStream():
+    """
+    A class for managing audio output and text-to-speech (TTS) conversion.
+
+    Parameters
+    ----------
+    url : str
+        The URL endpoint for the text-to-speech service
+    rate : int, optional
+        The sampling rate in Hz for audio output (default: 16000)
+    device : int, optional
+        The output device index. If None, uses the first available output device
+        (default: None)
+    tts_state_callback : Optional[Callable], optional
+        A callback function to receive TTS state changes (active/inactive)
+        (default: None)
+    """
     def __init__(self, url: str, rate: int = 16000, device: int = None, tts_state_callback: Optional[Callable] = None):
         self._url = url
         self._rate = rate
@@ -77,12 +93,34 @@ class AudioOutputStream():
             raise
 
     def set_tts_state_callback(self, callback: Callable):
+        """
+        Set a callback function for TTS state changes.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to be called when TTS state changes (active/inactive)
+        """
         self._tts_state_callback = callback
 
     def add(self, audio_data: str):
+        """
+        Add text to the TTS processing queue.
+
+        Parameters
+        ----------
+        audio_data : str
+            Text to be converted to speech
+        """
         self._pending_output.put(audio_data)
 
     def _process_audio(self):
+        """
+        Process the TTS queue and play audio output.
+
+        Makes HTTP requests to the TTS service, converts responses to audio,
+        and plays them through the audio device.
+        """
         while self.running:
             try:
                 tts_input = self._pending_output.get_nowait()
@@ -117,15 +155,34 @@ class AudioOutputStream():
                 continue
 
     def _tts_callback(self, is_active: bool):
+        """
+        Invoke the TTS state callback if set.
+
+        Parameters
+        ----------
+        is_active : bool
+            Whether TTS is currently active
+        """
         if self._tts_state_callback:
             self._tts_state_callback(is_active)
 
     def start(self):
+        """
+        Start the audio processing thread.
+
+        Initializes a daemon thread for processing the TTS queue.
+        """
         process_thread = threading.Thread(target=self._process_audio)
         process_thread.daemon = True
         process_thread.start()
 
     def run_interactive(self):
+        """
+        Run an interactive console for text-to-speech conversion.
+
+        Allows users to input text for TTS conversion until 'quit' is entered
+        or KeyboardInterrupt is received.
+        """
         logger.info("Running interactive audio output stream")
         try:
             while self.running:
@@ -139,6 +196,9 @@ class AudioOutputStream():
             self.stop()
 
     def stop(self):
+        """
+        Stop the audio output stream and cleanup resources.
+        """
         self.running = False
 
 if __name__ == "__main__":

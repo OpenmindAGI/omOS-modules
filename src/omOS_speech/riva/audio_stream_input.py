@@ -2,8 +2,6 @@ import logging
 from queue import Queue, Empty
 from typing import Optional, Callable, Any
 
-from omOS_utils.ws import Server
-
 logger = logging.getLogger(__name__)
 
 class AudioStreamInput:

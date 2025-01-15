@@ -11,13 +11,32 @@ from typing import Optional, Callable, Generator, Tuple, Union, Any
 logger = logging.getLogger(__name__)
 
 class AudioInputStream():
+    """
+    A class for capturing and managing real-time audio input from a microphone.
+
+    This class provides functionality to capture audio data from a specified or default
+    microphone device, process it in chunks, and make it available through a generator
+    or callback mechanism. It supports Text-to-Speech (TTS) integration by temporarily
+    suspending audio capture during TTS playback.
+
+    Parameters
+    ----------
+    rate : int, optional
+        The sampling rate in Hz for audio capture (default: 16000)
+    chunk : int, optional
+        The size of each audio chunk in frames (default: 4048)
+    device : Optional[Union[str, int, float, Any]], optional
+        The input device identifier. Can be device index or name. If None,
+        uses system default input device (default: None)
+    audio_data_callback : Optional[Callable], optional
+        A callback function that receives audio data chunks (default: None)
+    """
     def __init__(
         self,
         rate: int = 16000,
         chunk: int = 4048,
         device: Optional[Union[str, int, float, Any]] = None,
         audio_data_callback: Optional[Callable] = None,
-        tts_state_callback: Optional[Callable] = None
     ):
         self._rate = rate
         self._chunk = chunk
@@ -25,9 +44,6 @@ class AudioInputStream():
 
         # Callback for audio data
         self.audio_data_callback = audio_data_callback
-
-        # Callback for TTS state
-        self.tts_state_callback = tts_state_callback
 
         # Flag to indicate if TTS is active
         self._is_tts_active: bool = False
@@ -47,15 +63,39 @@ class AudioInputStream():
 
         self.running: bool = True
 
-    def set_tts_state_callback(self, callback: Optional[Callable]):
-        self.tts_state_callback = callback
-
     def on_tts_state_change(self, is_active: bool):
-        with self._lock:
+       """
+        Updates the TTS active state to control audio capture behavior.
+
+        When TTS is active, audio capture is temporarily suspended to prevent
+        capturing the TTS output.
+
+        Parameters
+        ----------
+        is_active : bool
+            True if TTS is currently playing, False otherwise
+        """
+       with self._lock:
             self._is_tts_active = is_active
             logger.info(f"TTS active state changed to: {is_active}")
 
     def start(self) -> 'AudioInputStream':
+        """
+        Initializes and starts the audio capture stream.
+
+        This method sets up the PyAudio interface, configures the input device,
+        and starts the audio processing thread.
+
+        Returns
+        -------
+        AudioInputStream
+            The current instance for method chaining
+
+        Raises
+        ------
+        Exception
+            If there are errors initializing the audio interface or opening the stream
+        """
         if not self.running:
             return self
 
@@ -98,6 +138,11 @@ class AudioInputStream():
         return self
 
     def _start_audio_thread(self):
+        """
+        Starts the audio processing thread if it's not already running.
+
+        The thread runs as a daemon to ensure it terminates when the main program exits.
+        """
         if self._audio_thread is None or not self._audio_thread.is_alive():
             self._audio_thread = threading.Thread(
                 target=self.on_audio,
@@ -107,12 +152,46 @@ class AudioInputStream():
             logger.info("Started audio processing thread")
 
     def _fill_buffer(self, in_data: bytes, frame_count: int, time_info: dict, status_flags: int) -> Tuple[None, int]:
+        """
+        Callback function for the PyAudio stream to fill the audio buffer.
+
+        This method is called by PyAudio when new audio data is available.
+        It adds the data to the buffer queue if TTS is not active.
+
+        Parameters
+        ----------
+        in_data : bytes
+            The captured audio data
+        frame_count : int
+            Number of frames in the audio data
+        time_info : dict
+            Timing information from PyAudio
+        status_flags : int
+            Status flags from PyAudio
+
+        Returns
+        -------
+        Tuple[None, int]
+            A tuple containing None and pyaudio.paContinue
+        """
         with self._lock:
             if not self._is_tts_active:
                 self._buff.put(in_data)
         return None, pyaudio.paContinue
 
     def generator(self) -> Generator[bytes, None, None]:
+        """
+        Generates a stream of audio data chunks.
+
+        This generator yields audio data chunks, combining multiple chunks when
+        available to reduce processing overhead. It skips yielding data when
+        TTS is active.
+
+        Yields
+        ------
+        bytes
+            Combined audio data chunks
+        """
         while self.running:
             chunk = self._buff.get()
             if chunk is None:
@@ -139,12 +218,19 @@ class AudioInputStream():
             yield b''.join(data)
 
     def on_audio(self):
+        """Audio processing loop"""
         for _ in self.generator():
             if not self.running:
                 break
         pass
 
     def stop(self):
+        """
+        Stops the audio stream and cleans up resources.
+
+        This method stops the audio stream, terminates the PyAudio interface,
+        and ensures the audio processing thread is properly shut down.
+        """
         self.running = False
 
         if self._audio_stream:

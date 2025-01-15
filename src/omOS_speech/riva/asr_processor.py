@@ -15,6 +15,16 @@ except ModuleNotFoundError:
     client = None
 
 class ASRProcessor:
+    """
+    A class for processing real-time automatic speech recognition (ASR) using NVIDIA Riva.
+
+    Parameters
+    ----------
+    model_args : argparse.Namespace
+        Command line arguments and configuration parameters
+    callback : Optional[Callable], optional
+        Callback function to receive ASR results (default: None)
+    """
     def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable] = None):
         self.model: Optional[ASRService] = None
         self.model_config: Optional[StreamingRecognitionConfig] = None
@@ -29,6 +39,13 @@ class ASRProcessor:
         self._initialize_model()
 
     def _initialize_model(self):
+        """
+        Initialize the Riva ASR model and configuration.
+
+        Sets up the ASR service with specified authentication and configures
+        the recognition parameters including audio encoding, language,
+        punctuation, and various thresholds.
+        """
         auth = client.Auth(self.args.ssl_cert, self.args.use_ssl, self.args.server, self.args.metadata)
         self.model = client.ASRService(auth)
         self.model_config = client.StreamingRecognitionConfig(
@@ -60,9 +77,35 @@ class ASRProcessor:
         )
 
     def on_audio(self, audio: bytes) -> bytes:
+        """
+        Process incoming audio data.
+
+        Parameters
+        ----------
+        audio : bytes
+            Raw audio data to be processed
+
+        Returns
+        -------
+        bytes
+            Processed audio data
+        """
         return audio
 
     def _yield_audio_chunks(self, audio_source: Any):
+        """
+        Generate audio chunks from the audio source.
+
+        Parameters
+        ----------
+        audio_source : Any
+            Source object that provides audio chunks through get_audio_chunk method
+
+        Yields
+        ------
+        bytes
+            Audio chunks for processing
+        """
         while self.running:
             if audio_source:
                 chunk = audio_source.get_audio_chunk()
@@ -71,6 +114,18 @@ class ASRProcessor:
             time.sleep(0.01)  # Small delay to prevent busy waiting
 
     def process_audio(self, audio_source: Any):
+        """
+        Process audio stream and generate ASR transcriptions.
+
+        Continuously processes audio chunks from the source and generates
+        transcriptions. Final transcriptions are logged and sent to the
+        callback function if provided.
+
+        Parameters
+        ----------
+        audio_source : Any
+            Source object that provides audio chunks for processing
+        """
         responses = self.model.streaming_response_generator(
             audio_chunks=self._yield_audio_chunks(audio_source),
             streaming_config=self.model_config
@@ -94,4 +149,10 @@ class ASRProcessor:
                     self.callback(json.dumps({"asr_reply": transcript}))
 
     def stop(self):
+        """
+        Stop the audio processing.
+
+        Sets the running flag to False to stop audio chunk generation
+        and processing.
+        """
         self.running = False

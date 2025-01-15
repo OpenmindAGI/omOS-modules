@@ -2,7 +2,7 @@ import logging
 import argparse
 import threading
 import time
-from typing import Optional, Any
+from typing import Optional
 
 from omOS_utils import ws, http
 
@@ -19,6 +19,25 @@ from .processor import ConnectionProcessor
 logger = logging.getLogger(__name__)
 
 class Application:
+    """
+    Main application class that manages speech services and server components.
+
+    This class orchestrates the different components of the speech processing system,
+    including ASR (Automatic Speech Recognition), TTS (Text-to-Speech), and audio
+    streaming functionality. It can operate in either server mode for multiple
+    connections or single-connection mode.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command line arguments containing configuration for:
+        - WebSocket server (ws_host, ws_port)
+        - HTTP server (http_host, http_port)
+        - Server mode configuration
+        - Remote URL for audio streaming
+        - Logging level
+        - ASR and TTS model parameters
+    """
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.ws_server: Optional[ws.Server] = None
@@ -40,6 +59,18 @@ class Application:
 
     @staticmethod
     def parse_arguments() -> argparse.Namespace:
+        """
+        Parse command line arguments for the application.
+
+        Returns
+        -------
+        argparse.Namespace
+            Parsed command line arguments including:
+            - Server configuration (WebSocket and HTTP)
+            - Operating mode settings
+            - ASR and TTS model parameters
+            - Logging configuration
+        """
         parser = argparse.ArgumentParser()
         parser.add_argument("--ws-host", type=str, default="localhost", help="WebSocket server host")
         parser.add_argument("--ws-port", type=int, help="WebSocket server port")
@@ -60,6 +91,12 @@ class Application:
     # Demo for audio streaming and retrieving ASR results
     # ARS reulst will be directly sent back to the client
     def setup_audio_streaming(self):
+        """
+        Set up audio streaming to a remote WebSocket server.
+
+        Initializes the WebSocket client and audio input streamer for
+        sending audio data to a remote server.
+        """
         self.ws_client = ws.Client(url=self.args.remote_url)
         self.ws_client.start()
 
@@ -67,6 +104,12 @@ class Application:
         self.audio_input_streamer.start()
 
     def setup_asr_processing(self):
+        """
+        Set up ASR (Automatic Speech Recognition) processing.
+
+        Configures either multi-connection server mode or single connection mode
+        with default audio input. Initializes ASR processor and WebSocket server.
+        """
         self.ws_server = ws.Server(host=self.args.ws_host, port=self.args.ws_port)
 
         # Create thread processor
@@ -89,6 +132,12 @@ class Application:
         self.ws_server.start()
 
     def setup_tts_processing(self):
+        """
+        Set up TTS (Text-to-Speech) processing.
+
+        Initializes the TTS processor and HTTP server for handling
+        text-to-speech requests.
+        """
         self.tts_processor = TTSProcessor(self.args)
 
         self.http_server = http.Server(host=self.args.http_host, port=self.args.http_port)
@@ -103,6 +152,12 @@ class Application:
         # tts_thread.start()
 
     def start(self):
+        """
+        Start the application and its components.
+
+        Initializes and starts all necessary components based on the
+        configuration. Runs until interrupted or stop() is called.
+        """
         logger.info("Starting application...")
 
         if self.args.remote_url:
@@ -124,6 +179,12 @@ class Application:
             self.stop()
 
     def stop(self):
+        """
+        Stop the application and clean up resources.
+
+        Gracefully shuts down all components and releases resources.
+        This includes stopping servers, processors, and audio streams.
+        """
         logger.info("\nShutting down gracefully... (This may take a few seconds)")
         self.running = False
 
@@ -149,6 +210,9 @@ class Application:
             self.tts_processor.stop()
 
 def main():
+    """
+    Main entry point for the application.
+    """
     args = Application.parse_arguments()
     app = Application(args)
     app.start()
