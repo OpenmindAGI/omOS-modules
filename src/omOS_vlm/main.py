@@ -20,6 +20,9 @@ class Application:
         self.connection_processor: Optional[ConnectionProcessor] = None
         self.video_device_processor: Optional[VideoDeviceInput] = None
         self.vlm_processor: Optional[VLMProcessor] = None
+        self.video_stream: Optional[VideoStream] = None
+        self.video_source: Optional[Any] = None
+        self.video_output: Optional[Any] = None
         self.running: bool = False
 
         self.args.ws_port = self.args.ws_port or 6789
@@ -51,13 +54,8 @@ class Application:
         self.ws_client = ws.Client(url=self.args.remote_url)
         self.ws_client.start()
 
-        video_streamer = VideoStream(self.ws_client.send_message)
-
-        video_thread = threading.Thread(
-            target=video_streamer.on_video,
-            daemon=True
-        )
-        video_thread.start()
+        self.video_stream = VideoStream(self.ws_client.send_message)
+        self.video_stream.start()
 
     def setup_vlm_processing(self):
         self.ws_server = ws.Server(host=self.args.ws_host, port=self.args.ws_port)
@@ -101,7 +99,7 @@ class Application:
             self.stop()
 
     def stop(self):
-        logger.info("\nShutting down gracefully... (This may take a few seconds)")
+        logger.info("Shutting down gracefully... (This may take a few seconds)")
         self.running = False
 
         if self.ws_server:
@@ -115,6 +113,9 @@ class Application:
 
         if self.video_device_processor:
             self.video_device_processor.stop()
+
+        if self.video_stream:
+            self.video_stream.stop()
 
         if self.video_source:
             self.video_source.stop()

@@ -185,7 +185,7 @@ class Application:
         Gracefully shuts down all components and releases resources.
         This includes stopping servers, processors, and audio streams.
         """
-        logger.info("\nShutting down gracefully... (This may take a few seconds)")
+        logger.info("Shutting down gracefully... (This may take a few seconds)")
         self.running = False
 
         if self.ws_server:
