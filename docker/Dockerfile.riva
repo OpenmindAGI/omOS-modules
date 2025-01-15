@@ -2,7 +2,6 @@ FROM nvcr.io/nvidia/riva/riva-speech:2.18.0 AS base
 
 RUN apt-get update && apt-get -y install python3-pyaudio pulseaudio pulseaudio-utils alsa-utils libasound2 libasound2-plugins netcat
 RUN pip install --upgrade pyaudio websockets
-RUN apt-get upgrade -y python3-pyaudio
 
 RUN mkdir /app
 

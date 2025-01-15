@@ -11,7 +11,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-omOS-tts = "omOS_speech.audio.audio_output_stream:main"
+omOS_tts = "omOS_speech.audio.audio_output_stream:main"
 
 [tool.poetry.dependencies]
 python = ">=3.9"
