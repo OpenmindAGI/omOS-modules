@@ -51,6 +51,8 @@ You can find the example code in [ASR.py](./examples/ASR.py). Run it using:
 python3 ./examples/ASR.py
 ```
 
+### Text-to-Speech (TTS)
+
 ## Modules
 
 ### omOS Speech
