@@ -39,6 +39,9 @@ class AudioInputStream():
         self._audio_interface: Optional[pyaudio.PyAudio] = None
         self._audio_stream: Optional[pyaudio.Stream] = None
 
+        # Audio processing thread
+        self._audio_thread: Optional[threading.Thread] = None
+
         # Lock for thread safety
         self._lock = threading.Lock()
 
@@ -82,6 +85,9 @@ class AudioInputStream():
                 stream_callback=self._fill_buffer,
             )
 
+            # Start the audio processing thread
+            self._start_audio_thread()
+
             logger.info(f"Started audio stream with device {self._device}")
 
         except Exception as e:
@@ -90,6 +96,15 @@ class AudioInputStream():
             raise
 
         return self
+
+    def _start_audio_thread(self):
+        if self._audio_thread is None or not self._audio_thread.is_alive():
+            self._audio_thread = threading.Thread(
+                target=self.on_audio,
+                daemon=True
+            )
+            self._audio_thread.start()
+            logger.info("Started audio processing thread")
 
     def _fill_buffer(self, in_data: bytes, frame_count: int, time_info: dict, status_flags: int) -> Tuple[None, int]:
         with self._lock:
@@ -123,7 +138,7 @@ class AudioInputStream():
 
             yield b''.join(data)
 
-    def on_auido(self):
+    def on_audio(self):
         for _ in self.generator():
             if not self.running:
                 break
@@ -138,6 +153,10 @@ class AudioInputStream():
 
         if self._audio_interface:
             self._audio_interface.terminate()
+
+        # Clean up the audio processing thread
+        if self._audio_thread and self._audio_thread.is_alive():
+            self._audio_thread.join(timeout=1.0)
 
         self._buff.put(None)
         logger.info("Stopped audio stream")
