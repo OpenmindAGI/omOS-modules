@@ -43,6 +43,47 @@ def mock_cv2():
             yield mock
 
 @pytest.fixture
+def mock_camera():
+    class MockVideoCapture:
+        def __init__(self, device_index):
+            print(f"Creating mock camera for device: {device_index}")
+            self.is_opened = True
+            self.frame_count = 0
+
+        def isOpened(self):
+            return self.is_opened
+
+        def getBackendName(self):
+            return 'Mock'
+
+        def read(self):
+            if not self.is_opened:
+                return False, None
+
+            self.frame_count += 1
+            if self.frame_count <= 10:  # Generate 10 test frames
+                # Create a simple test pattern
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                # Add some visible pattern
+                frame[200:300, 200:300] = 255  # White square
+                return True, frame
+            return False, None
+
+        def release(self):
+            self.is_opened = False
+
+    return MockVideoCapture
+
+@pytest.fixture(autouse=True)
+def mock_video_dependencies(mock_camera):
+    with patch('cv2.VideoCapture', mock_camera), \
+         patch('cv2.imencode', return_value=(True, b'fake_frame_data')), \
+         patch('omOS_vlm.video.video_stream.enumerate_video_devices',
+               return_value=[(0, 'Mock Camera')]), \
+         patch('platform.system', return_value='Linux'):
+        yield
+
+@pytest.fixture
 def mock_platform():
     with patch('platform.system') as mock:
         mock.return_value = 'Linux'
