@@ -30,6 +30,9 @@ class VideoStream():
         # Callback for video frame data
         self.frame_callback = frame_callback
 
+        # Video capture device
+        self._cap = None
+
         self.running: bool = True
 
     def on_video(self):
@@ -44,6 +47,7 @@ class VideoStream():
         Exception
             If video streaming encounters an error
         """
+
         devices = enumerate_video_devices()
         if platform.system() == 'Darwin':
             camindex = 0 if devices else 0
@@ -51,14 +55,14 @@ class VideoStream():
             camindex = '/dev/video' + str(devices[0][0]) if devices else '/dev/video0'
         logger.info(f"Using camera: {camindex}")
 
-        cap = cv2.VideoCapture(camindex)
-        if not cap.isOpened():
+        self._cap = cv2.VideoCapture(camindex)
+        if not self._cap.isOpened():
             logger.error(f"Error opening video stream from {camindex}")
             return
 
         try:
             while self.running:
-                ret, frame = cap.read()
+                ret, frame = self._cap.read()
                 if not ret:
                     logger.error("Error reading frame from video stream")
                     time.sleep(0.1)
@@ -75,6 +79,10 @@ class VideoStream():
 
         except Exception as e:
             logger.error(f"Error streaming video: {e}")
+        finally:
+            if self._cap:
+                self._cap.release()
+                logger.info("Released video capture device")
 
     def _start_video_thread(self):
         """
@@ -119,6 +127,9 @@ class VideoStream():
         processing thread to finish.
         """
         self.running = False
+
+        if self._cap:
+            self._cap.release()
 
         if self._video_thread and self._video_thread.is_alive():
             self._video_thread.join(timeout=1.0)

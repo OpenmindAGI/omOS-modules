@@ -136,5 +136,5 @@ class ConnectionProcessor:
         """
         Stop all active connections and cleanup resources.
         """
-        for connection_id in list(self.asr_processors.keys()):
+        for connection_id in list(self.vlm_processors.keys()):
             self.handle_connection_closed(connection_id)
