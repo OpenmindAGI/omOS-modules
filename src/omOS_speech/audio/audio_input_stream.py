@@ -207,8 +207,9 @@ class AudioInputStream():
                 try:
                     chunk = self._buff.get(block=False)
                     if chunk is None:
-                        return
-                    data.append(chunk)
+                        assert self.running
+                    if chunk:
+                        data.append(chunk)
                 except queue.Empty:
                     break
 
