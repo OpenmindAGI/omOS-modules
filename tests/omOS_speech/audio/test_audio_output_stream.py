@@ -79,7 +79,7 @@ def test_device_selection_specific(mock_pyaudio):
     # Verify specific device was selected
     mock_pyaudio.return_value.get_device_info_by_index.assert_called_with(1)
 
-def test_tts_callback():
+def test_tts_callback(mock_pyaudio):
     """Test TTS state callback"""
     callback_state = None
 
