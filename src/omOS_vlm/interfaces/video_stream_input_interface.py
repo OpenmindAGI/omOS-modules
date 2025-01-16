@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import argparse
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Tuple
 
 class VideoStreamInputInterface(ABC):
     """Abstract base class for video stream input handlers."""
