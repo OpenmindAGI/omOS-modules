@@ -10,15 +10,40 @@ from typing import Optional, Callable
 logger = logging.getLogger(__name__)
 
 class VideoStream():
-    def __init__(self, callback: Optional[Callable[[str], None]] = None):
+    """
+    Manages video capture and streaming from a camera device.
+
+    Provides functionality to capture video frames from a camera device,
+    process them, and stream them through a callback function. Supports
+    both macOS and Linux camera devices.
+
+    Parameters
+    ----------
+    frame_callback : Optional[Callable[[str], None]], optional
+        Callback function to handle processed frame data.
+        Function receives base64 encoded frame data.
+        By default None
+    """
+    def __init__(self, frame_callback: Optional[Callable[[str], None]] = None):
         self._video_thread: Optional[threading.Thread] = None
 
-        # Callback for video data
-        self.callback = callback
+        # Callback for video frame data
+        self.frame_callback = frame_callback
 
         self.running: bool = True
 
     def on_video(self):
+        """
+        Main video capture and processing loop.
+
+        Captures frames from the camera, encodes them to base64,
+        and sends them through the callback if registered.
+
+        Raises
+        ------
+        Exception
+            If video streaming encounters an error
+        """
         devices = enumerate_video_devices()
         if platform.system() == 'Darwin':
             camindex = 0 if devices else 0
@@ -43,8 +68,8 @@ class VideoStream():
                 _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
                 frame_data = base64.b64encode(buffer).decode('utf-8')
 
-                if self.callback:
-                    self.callback(frame_data)
+                if self.frame_callback:
+                    self.frame_callback(frame_data)
 
                 time.sleep(0.033) # 30 fps
 
@@ -52,6 +77,12 @@ class VideoStream():
             logger.error(f"Error streaming video: {e}")
 
     def _start_video_thread(self):
+        """
+        Initialize and start the video processing thread.
+
+        Creates a new daemon thread for video processing if one isn't
+        already running.
+        """
         if self._video_thread is None or not self._video_thread.is_alive():
             self._video_thread = threading.Thread(
                 target=self.on_video,
@@ -60,11 +91,33 @@ class VideoStream():
             self._video_thread.start()
             logger.info("Started video processing thread")
 
+    def register_frame_callback(self, frame_callback: Callable[[str], None]):
+        """
+        Register a callback function for processed frames.
+
+        Parameters
+        ----------
+        frame_callback : Callable[[str], None]
+            Function to be called with base64 encoded frame data
+        """
+        self.frame_callback = frame_callback
+
     def start(self):
-        # Start video processing thread
+        """
+        Start video capture and processing.
+
+        Initializes the video processing thread and begins
+        capturing frames.
+        """
         self._start_video_thread()
 
     def stop(self):
+        """
+        Stop video capture and clean up resources.
+
+        Stops the video processing loop and waits for the
+        processing thread to finish.
+        """
         self.running = False
 
         if self._video_thread and self._video_thread.is_alive():

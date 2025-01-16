@@ -2,7 +2,7 @@ import logging
 from queue import Queue, Empty
 from typing import Optional, Any
 
-from ..interface import AudioStreamInputInterface
+from ..interfaces import AudioStreamInputInterface
 
 logger = logging.getLogger(__name__)
 

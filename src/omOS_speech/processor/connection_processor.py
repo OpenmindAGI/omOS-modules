@@ -7,7 +7,7 @@ import argparse
 from typing import Dict, Optional
 from omOS_utils import ws
 
-from ..interface import AudioStreamInputInterface, ASRProcessorInterface
+from ..interfaces import AudioStreamInputInterface, ASRProcessorInterface
 
 logger = logging.getLogger(__name__)
 

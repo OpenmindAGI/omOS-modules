@@ -6,34 +6,79 @@ import argparse
 from typing import Dict, Optional
 from omOS_utils import ws
 
-## TODO
-# The standard interface of the VLMProcessor and VideoStreamInput classes
-from ..nv_nano_llm import VLMProcessor, VideoStreamInput
+from ..interfaces import VLMProcessorInterface, VideoStreamInputInterface
 
 logger = logging.getLogger(__name__)
 
 class ConnectionProcessor:
+    """
+    Manages WebSocket connections and associated VLM processing streams.
+
+    Handles the lifecycle of video language model (VLM) processors and video streams
+    for each WebSocket connection. Coordinates the creation, management, and cleanup
+    of processing threads for real-time video analysis.
+
+    Parameters
+    ----------
+    arg : argparse.Namespace
+        Command line arguments for configuring processors and streams
+    vlm_processor_class : type
+        Class type for creating VLM processor instances
+    video_stream_input_class : type
+        Class type for creating video stream input instances
+    """
     def __init__(self, arg: argparse.Namespace, vlm_processor_class: type, video_stream_input_class: type):
         self.args = arg
         self.vlm_processor_class = vlm_processor_class
         self.video_stream_input_class = video_stream_input_class
-        self.vlm_processors: Dict[str, VLMProcessor] = {}
-        self.video_sources: Dict[str, VideoStreamInput] = {}
+        self.vlm_processors: Dict[str, VLMProcessorInterface] = {}
+        self.video_sources: Dict[str, VideoStreamInputInterface] = {}
         self.processing_threads: Dict[str, threading.Thread] = {}
         self.ws_server: Optional[ws.Server] = None
 
     def set_server(self, ws_server: ws.Server):
+        """
+        Set up the WebSocket server and register connection callbacks.
+
+        Parameters
+        ----------
+        ws_server : ws.Server
+            WebSocket server instance to handle connections
+        """
         self.ws_server = ws_server
 
         self.ws_server.register_connection_callback(lambda event, conn_id: self.handle_connection_event(event, conn_id))
 
     def handle_connection_event(self, event: str, connection_id: str):
+        """
+        Handle WebSocket connection events.
+
+        Parameters
+        ----------
+        event : str
+            Type of connection event ('connect' or 'disconnect')
+        connection_id : str
+            Unique identifier for the connection
+        """
         if event == 'connect':
             self.handle_new_connection(connection_id)
         elif event == 'disconnect':
             self.handle_connection_closed(connection_id)
 
     def handle_new_connection(self, connection_id: str):
+        """
+        Set up processing components for a new connection.
+
+        Creates and initializes:
+        - VLM processor
+        - Video stream source
+        - Processing thread
+
+        Parameters
+        ----------
+        connection_id : str
+            Unique identifier for the new connection
+        """
         vlm_processor = self.vlm_processor_class(
             self.args,
             callback=lambda message: self.ws_server.handle_response(connection_id, message)
@@ -66,6 +111,14 @@ class ConnectionProcessor:
 
 
     def handle_connection_closed(self, connection_id: str):
+        """
+        Clean up resources when a connection closes.
+
+        Parameters
+        ----------
+        connection_id : str
+            Unique identifier for the closed connection
+        """
         if connection_id in self.vlm_processors:
             self.vlm_processors[connection_id].stop()
             del self.vlm_processors[connection_id]
@@ -80,5 +133,8 @@ class ConnectionProcessor:
         logger.info(f"Stopped processing thread for connection {connection_id}")
 
     def stop(self):
+        """
+        Stop all active connections and cleanup resources.
+        """
         for connection_id in list(self.asr_processors.keys()):
             self.handle_connection_closed(connection_id)
