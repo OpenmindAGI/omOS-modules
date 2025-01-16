@@ -20,6 +20,21 @@ except ModuleNotFoundError:
 logger = logging.getLogger(__name__)
 
 class VLMProcessor:
+    """
+    Vision Language Model (VLM) processor for real-time video analysis.
+
+    Processes video frames through a vision-language model to generate text descriptions
+    of interesting aspects in the video stream. Designed specifically for NVIDIA Jetson
+    devices using the nano_llm framework.
+
+    Parameters
+    ----------
+    model_args : argparse.Namespace
+        Command line arguments for model configuration.
+    callback : Optional[Callable[[str], None]], optional
+        Callback function for processing model responses,
+        by default None
+    """
     def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable[[str], None]] = None):
         self.model: nano_llm.NanoLLM = self._initialize_model(model_args)
         self.model_args = model_args
@@ -36,6 +51,24 @@ class VLMProcessor:
         self._warmup_model()
 
     def _initialize_model(self, args: argparse.Namespace):
+        """
+        Initialize the vision-language model.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            Model configuration arguments
+
+        Returns
+        -------
+        nano_llm.NanoLLM
+            Initialized model instance
+
+        Raises
+        ------
+        AssertionError
+            If the model does not have vision capabilities
+        """
         model = NanoLLM.from_pretrained(
             args.model,
             api=args.api,
@@ -49,14 +82,46 @@ class VLMProcessor:
         return model
 
     def _initialize_chat_history(self, args: argparse.Namespace):
+        """
+        Initialize chat history for the model.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            Arguments containing chat template and system prompt
+
+        Returns
+        -------
+        nano_llm.ChatHistory
+            Initialized chat history instance
+        """
         return ChatHistory(self.model, args.chat_template, args.system_prompt)
 
     def _warmup_model(self):
+        """
+        Perform model warmup with a simple query.
+
+        Sends a basic arithmetic query to ensure the model is loaded
+        and ready for processing.
+        """
         self.chat_history.append(role='user', text='What is 2+2?')
         logging.info(f"Warmup response: '{self.model.generate(self.chat_history.embed_chat()[0], streaming=False)}'".replace('\n','\\n'))
         self.chat_history.reset()
 
     def cleanup(self, text: str) -> str:
+        """
+        Clean up model response text.
+
+        Parameters
+        ----------
+        text : str
+            Raw model response text
+
+        Returns
+        -------
+        str
+            Cleaned and formatted response text
+        """
         response = remove_special_tokens(text)
         response = response.lower()
         response = response.replace("the most interesting aspect of this series of images is", "You see")
@@ -67,6 +132,19 @@ class VLMProcessor:
         return response
 
     def on_video(self, image: Any) -> Any:
+        """
+        Process incoming video frames.
+
+        Parameters
+        ----------
+        image : Any
+            Input video frame in CUDA memory
+
+        Returns
+        -------
+        Any
+            Annotated video frame
+        """
         self.last_image = cudaMemcpy(image)
 
         annotation = "Accumulating:" + str(self.num_images)
@@ -77,6 +155,16 @@ class VLMProcessor:
         return image
 
     def process_frames(self, video_output: Any, video_source: Any):
+        """
+        Main frame processing loop.
+
+        Parameters
+        ----------
+        video_output : Any
+            Video output stream handler
+        video_source : Any
+            Video input source handler
+        """
         skip = 0
         while self.running:
             if self.last_image is None:
@@ -131,4 +219,9 @@ class VLMProcessor:
                 break
 
     def stop(self):
+        """
+        Stop frame processing.
+
+        Sets the running flag to False to terminate processing loop.
+        """
         self.running = False

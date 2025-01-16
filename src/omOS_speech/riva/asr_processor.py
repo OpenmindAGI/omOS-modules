@@ -14,7 +14,7 @@ try:
 except ModuleNotFoundError:
     client = None
 
-from ..interface import ASRProcessorInterface
+from ..interfaces import ASRProcessorInterface
 
 class ASRProcessor(ASRProcessorInterface):
     """

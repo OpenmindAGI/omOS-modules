@@ -5,7 +5,7 @@ import argparse
 from typing import Optional
 
 from omOS_speech.processor import ConnectionProcessor
-from omOS_speech.interface import ASRProcessorInterface, AudioStreamInputInterface
+from omOS_speech.interfaces import ASRProcessorInterface, AudioStreamInputInterface
 
 class MockASRProcessor(ASRProcessorInterface):
     def __init__(self, args, callback=None):
