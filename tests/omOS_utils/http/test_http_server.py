@@ -138,22 +138,35 @@ def test_callback_string_response(server: http.Server, server_url: str):
     assert response.status_code == 200
     assert response.json() == {"response": "test response"}
 
-def test_server_stop():
+def test_server_stop(server_config: Tuple[str, int]):
     """Test server stop functionality."""
-    server = http.Server(port=6793)
-    server.start()
-    time.sleep(0.1)
+    host, port = server_config
+    server = http.Server(host=host, port=port)
 
-    server.stop()
-    assert server.running is False
+    try:
+        server.start()
+        server_url = f"http://{host}:{port}"
 
-    # Verify server is no longer accepting connections
-    with pytest.raises(requests.exceptions.ConnectionError):
-        requests.post(
-            "http://localhost:6793",
-            json={"test": "data"},
-            timeout=1
-        )
+        # Wait for server to start
+        if not wait_for_server(server_url):
+            pytest.fail(f"Server failed to start on {host}:{port}")
+
+        # Verify server is running
+        response = requests.post(server_url, json={"test": "data"}, timeout=1)
+        assert response.status_code in (400, 500)  # Either JSON error or no callback error
+
+        # Stop the server
+        server.stop()
+        assert server.running is False
+
+        # Verify server is no longer accepting connections
+        with pytest.raises(requests.exceptions.ConnectionError):
+            requests.post(server_url, json={"test": "data"}, timeout=1)
+
+    finally:
+        if server.running:
+            server.stop()
+        time.sleep(1.0)
 
 @pytest.mark.parametrize("test_input,expected_code", [
     ({"valid": "data"}, 200),
