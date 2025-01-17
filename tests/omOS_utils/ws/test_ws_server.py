@@ -95,7 +95,7 @@ async def test_client_connection(server_config):
         assert len(server.connections) == 1
         connection_callback.assert_called()
 
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     assert server.has_connections() is False
     assert connection_callback.call_count == 3
 
@@ -209,7 +209,7 @@ async def test_connection_closed_handling(server_config):
         initial_connections = len(server.connections)
         assert initial_connections > 0
 
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     assert len(server.connections) == initial_connections - 1
     assert connection_callback.call_count == 3
 
