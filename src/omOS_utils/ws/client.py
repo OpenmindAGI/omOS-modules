@@ -4,11 +4,23 @@ from websockets.sync.client import connect
 import threading
 from queue import Queue, Empty
 
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 logger = logging.getLogger(__name__)
 
 class Client:
+    """
+    A WebSocket client implementation with support for asynchronous message handling.
+
+    This class provides a threaded WebSocket client that can maintain a persistent
+    connection, automatically reconnect, and handle message sending and receiving
+    asynchronously.
+
+    Parameters
+    ----------
+    url : str, optional
+        The WebSocket server URL to connect to, by default "ws://localhost:6789"
+    """
     def __init__(self, url: str = "ws://localhost:6789"):
         self.url = url
         self.running: bool = True
@@ -20,11 +32,17 @@ class Client:
         self.sender_thread: Optional[threading.Thread] = None
 
     def _receive_messages(self):
+        """
+        Internal method to handle receiving messages from the WebSocket connection.
+
+        Continuously receives messages and processes them through the registered callback
+        if one exists. Runs in a separate thread.
+        """
         while self.running and self.connected:
             try:
                 message = self.websocket.recv()
                 formatted_msg = self.format_message(message)
-                logger.info(
+                logger.debug(
                     f"Received WS Message: {formatted_msg}"
                 )
                 if self.message_callback:
@@ -39,6 +57,12 @@ class Client:
                 break
 
     def _send_messages(self):
+        """
+        Internal method to handle sending messages through the WebSocket connection.
+
+        Continuously processes messages from the message queue and sends them through
+        the WebSocket connection. Runs in a separate thread.
+        """
         while self.running:
             try:
                 if self.connected and self.websocket:
@@ -57,6 +81,17 @@ class Client:
                 self.connected = False
 
     def connect(self) -> bool:
+        """
+        Establish a connection to the WebSocket server.
+
+        Attempts to connect to the WebSocket server and starts the receiver and sender
+        threads if the connection is successful.
+
+        Returns
+        -------
+        bool
+            True if connection was successful, False otherwise
+        """
         try:
             self.websocket = connect(self.url)
             self.connected = True
@@ -78,10 +113,24 @@ class Client:
             return False
 
     def send_message(self, message: str | bytes):
+        """
+        Queue a message to be sent through the WebSocket connection.
+
+        Parameters
+        ----------
+        message : Union[str, bytes]
+            The message to send, either as a string or bytes
+        """
         if self.connected:
             self.message_queue.put(message)
 
     def _run_client(self):
+        """
+        Internal method to manage the WebSocket client lifecycle.
+
+        Continuously attempts to maintain a connection to the WebSocket server,
+        implementing automatic reconnection with a delay between attempts.
+        """
         while self.running:
             if not self.connected:
                 if self.connect():
@@ -93,15 +142,45 @@ class Client:
                 threading.Event().wait(0.1)
 
     def start(self):
+        """
+        Start the WebSocket client.
+
+        Initializes and starts the main client thread that manages the WebSocket
+        connection.
+        """
         self.client_thread = threading.Thread(target=self._run_client, daemon=True)
         self.client_thread.start()
         logger.info("WebSocket client thread started")
 
     def register_message_callback(self, callback: Callable):
+        """
+        Register a callback function for handling received messages.
+
+        Parameters
+        ----------
+        callback : Callable[[Union[str, bytes]], Any]
+            Function to be called when a message is received. Should accept
+            either string or bytes as input.
+        """
         self.message_callback = callback
         logger.info("Registered message callback")
 
-    def format_message(self, msg: str | bytes, max_length: int = 200) -> str:
+    def format_message(self, msg: Union[str, bytes], max_length: int = 200) -> str:
+        """
+        Format a message for logging purposes, truncating if necessary.
+
+        Parameters
+        ----------
+        msg : Union[str, bytes]
+            The message to format
+        max_length : int, optional
+            Maximum length of the formatted message, by default 200
+
+        Returns
+        -------
+        str
+            The formatted message string
+        """
         try:
             if len(msg) <= max_length:
                 return msg
@@ -111,9 +190,22 @@ class Client:
             return f"<Error formatting message: {e}>"
 
     def is_connected(self) -> bool:
+        """
+        Check if the client is currently connected.
+
+        Returns
+        -------
+        bool
+            True if connected to the WebSocket server, False otherwise
+        """
         return self.connected
 
     def stop(self):
+        """
+        Stop the WebSocket client.
+
+        Closes the WebSocket connection, stops all threads, and cleans up resources.
+        """
         self.running = False
         if self.websocket:
             try:
@@ -121,6 +213,13 @@ class Client:
                 logger.info("WebSocket connection closed")
             except:
                 pass
+
+        try:
+            while True:
+                self.message_queue.get_nowait()
+                self.message_queue.task_done()
+        except Empty:
+            pass
+
         self.connected = False
-        self.message_queue.clear()
         logger.info("WebSocket client stopped")
