@@ -1,51 +1,72 @@
 import pytest
-import json
 import requests
-import threading
 import time
+import socket
+from contextlib import closing
 from unittest.mock import Mock
-from typing import Generator
+from typing import Generator, Tuple
 
 from omOS_utils import http
 
-def wait_for_server(url: str, timeout: int = 5, interval: float = 0.1) -> bool:
-    """Wait for server to be ready to accept connections."""
+def find_free_port() -> int:
+    """Find a free port on localhost."""
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        sock.bind(('', 0))
+        sock.listen(1)
+        port = sock.getsockname()[1]
+        return port
+
+def wait_for_server(url: str, timeout: int = 10, interval: float = 0.2) -> bool:
+    """Wait for server to be ready to accept connections with increased timeout."""
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            requests.post(url, json={"ping": "test"}, timeout=0.5)
+            requests.post(url, json={"ping": "test"}, timeout=1.0)
             return True
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             time.sleep(interval)
     return False
 
 @pytest.fixture
-def server() -> Generator[http.Server, None, None]:
-    """Fixture that creates and manages a test server instance."""
-    test_server = http.Server(port=6792)  # Use different port for testing
-    test_server.start()
-
-    # Wait for server to be ready
-    server_url = "http://localhost:6792"
-    if not wait_for_server(server_url):
-        pytest.fail("Server failed to start within timeout period")
-
-    yield test_server
-
-    test_server.stop()
-    # Wait for server to fully shut down
-    time.sleep(0.5)
+def server_config() -> Tuple[str, int]:
+    """Fixture that provides server host and a free port."""
+    host = "127.0.0.1"
+    port = find_free_port()
+    return host, port
 
 @pytest.fixture
-def server_url() -> str:
-    """Fixture that returns the test server URL."""
-    return "http://localhost:6792"
+def server(server_config: Tuple[str, int]) -> Generator[http.Server, None, None]:
+    """Fixture that creates and manages a test server instance."""
+    host, port = server_config
+    test_server = http.Server(host=host, port=port)
 
-def test_server_initialization():
+    try:
+        test_server.start()
+        server_url = f"http://{host}:{port}"
+
+        if not wait_for_server(server_url):
+            test_server.stop()
+            pytest.fail(f"Server failed to start on {host}:{port} within timeout period")
+
+        yield test_server
+
+    finally:
+        test_server.stop()
+        # Wait for server to fully shut down with increased timeout
+        time.sleep(1.0)
+
+@pytest.fixture
+def server_url(server_config: Tuple[str, int]) -> str:
+    """Fixture that returns the test server URL."""
+    host, port = server_config
+    return f"http://{host}:{port}"
+
+def test_server_initialization(server_config: Tuple[str, int]):
     """Test server initialization with custom parameters."""
-    server = http.Server(host="127.0.0.1", port=8000, timeout=30)
-    assert server.host == "127.0.0.1"
-    assert server.port == 8000
+    host, port = server_config
+    server = http.Server(host=host, port=port, timeout=30)
+    assert server.host == host
+    assert server.port == port
     assert server.timeout == 30
     assert server.running is True
     assert server.server is None
