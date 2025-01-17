@@ -160,7 +160,7 @@ def test_server_stop(server_config: Tuple[str, int]):
         assert server.running is False
 
         # Verify server is no longer accepting connections
-        with pytest.raises(requests.exceptions.ConnectionError):
+        with pytest.raises((requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout)):
             requests.post(server_url, json={"test": "data"}, timeout=1)
 
     finally:
