@@ -60,19 +60,6 @@ class VideoStream:
             If video streaming encounters an error
         """
 
-        if platform.system() == "Darwin":
-            # For macOS, try to get camera permissions first
-            try:
-                # This will trigger the permission dialog if not already granted
-                test_cap = cv2.VideoCapture(0)
-                if not test_cap.isOpened():
-                    logger.error("Camera permission denied or camera not available")
-                    return
-                test_cap.release()
-            except Exception as e:
-                logger.error(f"Error accessing camera on macOS: {e}")
-                return
-
         devices = enumerate_video_devices()
         if platform.system() == "Darwin":
             camindex = 0 if devices else 0

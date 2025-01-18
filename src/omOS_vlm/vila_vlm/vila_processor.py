@@ -1,12 +1,9 @@
 import logging
 import json
-import base64
-from io import BytesIO
-from typing import Optional, Any, Callable, List
-import time
+from typing import Optional, Callable, List
 import argparse
-import numpy as np
-from PIL import Image as PILImage, ImageDraw, ImageFont
+import time
+import threading
 
 try:
     from omOS_utils.ws.client import Client
@@ -38,17 +35,31 @@ class VILAProcessor:
         model_args: argparse.Namespace,
         callback: Optional[Callable[[str], None]] = None,
     ):
+        """
+        Initialize VILA processor.
+
+        Parameters
+        ----------
+        model_args : argparse.Namespace
+            Command line arguments for model configuration
+        callback : Optional[Callable[[str], None]], optional
+            Callback function for processing model responses
+        """
         self.model_args = model_args
         self.callback = callback
-        self.last_image: Optional[np.ndarray] = None
-        self.num_images: int = 0
-        self.raw_response: str = ""
         self.response: str = ""
         self.running: bool = True
         self.image_buffer: List[str] = []
+        self.response_timeout: int = 10 * 1000  # 10 seconds
+        self.waiting_for_response: bool = False
 
         # Initialize WebSocket client
-        self.ws_client = Client(f"ws://{model_args.host}:{model_args.port}/ws")
+        host = getattr(
+            model_args, "vila_host", "localhost"
+        )  # Default to localhost if not set
+        port = getattr(model_args, "vila_port", 8000)  # Default to 8000 if not set
+
+        self.ws_client = Client(f"ws://{host}:{port}/ws")
         self.ws_client.register_message_callback(self._handle_ws_message)
         self.ws_client.start()
 
@@ -64,89 +75,41 @@ class VILAProcessor:
         try:
             data = json.loads(message)
             if "response" in data:
-                self.raw_response = data["response"]
-                self.response = data["response"]  # No cleanup needed for VILA responses
+                self.response = data["response"]
                 logger.info(f"VILA response: {self.response}")
-
+                self.last_response_time = time.time() * 1000
                 if self.callback:
                     self.callback(json.dumps({"vila_reply": self.response}))
+                self.waiting_for_response = False
+                self.timeout_thread.cancel()
             elif "error" in data:
                 logger.error(f"VILA server error: {data['error']}")
         except Exception as e:
             logger.error(f"Error handling WebSocket message: {e}")
 
-    def _numpy_to_base64(self, image: np.ndarray) -> str:
+    def on_video(self, image: str):
         """
-        Convert numpy image to base64 string.
+        Callback function for buffering video frames.
+        Skips frames if necessary and buffers them until the batch size is reached.
 
         Parameters
         ----------
-        image : np.ndarray
-            Input image as numpy array
-
-        Returns
-        -------
-        str
-            Base64 encoded image string
+        image : str
+            The image in base64 format
         """
-        # Convert numpy array to PIL Image
-        pil_image = PILImage.fromarray(image)
+        # Make sure image buffer always gets the latest image but stays the same size
+        if len(self.image_buffer) == self.model_args.vila_batch_size:
+            self.image_buffer.pop(0)
+        self.image_buffer.append(image)
 
-        # Convert PIL Image to base64
-        buffered = BytesIO()
-        pil_image.save(buffered, format="PNG")
-        return base64.b64encode(buffered.getvalue()).decode()
-
-    def _add_text_overlay(self, image: np.ndarray, text: str) -> np.ndarray:
+    def handle_timeout(self):
         """
-        Add text overlay to image.
-
-        Parameters
-        ----------
-        image : np.ndarray
-            Input image
-        text : str
-            Text to overlay
-
-        Returns
-        -------
-        np.ndarray
-            Image with text overlay
+        Handle timeout for VILA response.
         """
-        # Convert numpy array to PIL Image for text drawing
-        pil_image = PILImage.fromarray(image)
-        draw = ImageDraw.Draw(pil_image)
+        logger.warning("VILA response timeout")
+        self.waiting_for_response = False
 
-        # Add text with background
-        x, y = 5, 5
-        draw.text((x, y), text, fill=(255, 0, 0))
-
-        # Convert back to numpy array
-        return np.array(pil_image)
-
-    def on_video(self, image: np.ndarray) -> np.ndarray:
-        """
-        Process incoming video frames.
-
-        Parameters
-        ----------
-        image : np.ndarray
-            Input video frame as numpy array
-
-        Returns
-        -------
-        np.ndarray
-            Annotated video frame
-        """
-        self.last_image = image.copy()
-
-        annotation = "Accumulating:" + str(self.num_images)
-        if self.num_images >= self.model_args.batch_size:
-            annotation = "VILA:" + self.response
-
-        return self._add_text_overlay(image, annotation)
-
-    async def process_frames(self, video_output: Any, video_source: Any):
+    def process_frames(self):
         """
         Main frame processing loop.
 
@@ -157,48 +120,30 @@ class VILAProcessor:
         video_source : Any
             Video input source handler
         """
-        skip = 0
         while self.running:
-            if self.last_image is None:
-                continue
-
-            if skip < self.model_args.frame_skip:
-                skip += 1
-                continue
-            else:
-                skip = 0
-
-            # Convert and store image
-            if self.last_image is not None:
-                img_b64 = self._numpy_to_base64(self.last_image)
-                self.image_buffer.append(img_b64)
-                self.last_image = None
-
-            if self.num_images < self.model_args.batch_size:
-                self.num_images += 1
-                continue
-            else:
-                self.num_images = 0
-
             # Send accumulated images to VILA server
             try:
-                if self.ws_client.is_connected():
+                if (
+                    self.ws_client.is_connected()
+                    and len(self.image_buffer) == self.model_args.vila_batch_size
+                    and not self.waiting_for_response
+                ):
+                    logger.info(
+                        f"Sending {len(self.image_buffer)} images to remote VILA server"
+                    )
                     message = {
                         "images": self.image_buffer,
                         "prompt": "What is the most interesting aspect in this series of images?",
                     }
                     self.ws_client.send_message(json.dumps(message))
-                else:
-                    logger.warning("WebSocket not connected to VILA server")
+                    self.waiting_for_response = True
+                    # Fire a timeout after timeout seconds
+                    self.timeout_thread = threading.Timer(
+                        self.response_timeout / 1000, self.handle_timeout
+                    )
+                    self.timeout_thread.start()
             except Exception as e:
                 logger.error(f"Error sending frames to VILA server: {e}")
-
-            # Clear image buffer
-            self.image_buffer = []
-
-            if video_source.eos:
-                video_output.stream.Close()
-                break
 
     def stop(self):
         """

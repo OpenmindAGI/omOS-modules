@@ -1,5 +1,4 @@
 import argparse
-from typing import List, Optional
 
 
 class VILAArgParser(argparse.ArgumentParser):
@@ -7,7 +6,9 @@ class VILAArgParser(argparse.ArgumentParser):
     Argument parser for VILA VLM configuration.
     """
 
-    def __init__(self, **kwargs):
+    Defaults = ["vila", "standalone"]  #: The default options for VILA configuration
+
+    def __init__(self, extras=Defaults, **kwargs):
         """
         Initialize the VILA argument parser with model-specific options.
         """
@@ -15,47 +16,55 @@ class VILAArgParser(argparse.ArgumentParser):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter, **kwargs
         )
 
-        # WebSocket connection
-        self.add_argument(
-            "--host",
-            type=str,
-            default="localhost",
-            help="VILA server hostname",
-        )
-        self.add_argument(
-            "--port",
-            type=int,
-            default=8000,
-            help="VILA server WebSocket port",
-        )
+        # VILA configuration
+        if "vila" in extras:
+            self.add_argument(
+                "--vila-host",
+                type=str,
+                default="localhost",
+                help="VILA server hostname",
+            )
+            self.add_argument(
+                "--vila-port", type=int, default=8000, help="VILA server WebSocket port"
+            )
+            self.add_argument(
+                "--vila-batch-size",
+                type=int,
+                default=5,
+                help="Number of frames to process in a batch",
+            )
 
-        # Video processing
-        self.add_argument(
-            "--frame-skip",
-            type=int,
-            default=5,
-            help="Number of frames to skip between processing",
-        )
-        self.add_argument(
-            "--batch-size",
-            type=int,
-            default=5,
-            help="Number of frames to process in a batch",
-        )
+        # Standalone mode options
+        if "standalone" in extras:
+            self.add_argument(
+                "--log-level",
+                type=str,
+                default="INFO",
+                choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                help="Set the logging level",
+            )
+            self.add_argument(
+                "--ws-host",
+                type=str,
+                default="localhost",
+                help="WebSocket server hostname",
+            )
+            self.add_argument(
+                "--ws-port",
+                type=int,
+                default=8765,
+                help="WebSocket server port",
+            )
+            self.add_argument(
+                "--fps",
+                type=int,
+                default=10,
+                help="Frames per second for video processing",
+            )
 
-    def parse_args(self, args: Optional[List[str]] = None) -> argparse.Namespace:
+    def parse_args(self, **kwargs):
         """
-        Parse command-line arguments.
-
-        Parameters
-        ----------
-        args : Optional[List[str]]
-            List of arguments to parse. If None, uses sys.argv[1:].
-
-        Returns
-        -------
-        argparse.Namespace
-            Parsed arguments
+        Parse command-line arguments with additional configuration.
         """
-        parsed_args = super().parse_args(args)
-        return parsed_args
+        args = super().parse_args(**kwargs)
+        return args
