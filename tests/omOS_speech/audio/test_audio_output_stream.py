@@ -129,6 +129,9 @@ def test_audio_processing(audio_output, mock_requests):
     )
 
     # Verify callback was triggered
+    time.sleep(1)
+
+    # Verify callback was triggered
     assert callback_called is False
 
 def test_error_handling(audio_output, mock_requests):
