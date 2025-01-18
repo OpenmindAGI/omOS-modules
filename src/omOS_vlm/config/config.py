@@ -13,10 +13,12 @@ from ..nv_nano_llm import VideoDeviceInput as NanoLLMVideoDeviceInput
 
 # Video stream input
 from ..nv_nano_llm import VideoStreamInput as NanoLLMVideoStreamInput
+from ..vila_vlm import VideoStreamInput as VILAVideoStreamInput
 
 T_Parser = TypeVar('T_Parser', bound=argparse.ArgumentParser)
 T_Processor = TypeVar('T_Processor', NanoLLMProcessor, VILAProcessor)
-T_VideoInput = TypeVar('T_VideoInput', NanoLLMVideoDeviceInput, NanoLLMVideoStreamInput)
+T_VideoDeviceInput = TypeVar('T_VideoDeviceInput', NanoLLMVideoDeviceInput)
+T_VideoStreamInput = TypeVar('T_VideoStreamInput', NanoLLMVideoStreamInput, VILAVideoStreamInput)
 
 MODEL_CONFIGS: Dict[str, List[str]] = {
     'vila': ['vila', 'standalone'],
@@ -33,10 +35,11 @@ VLM_PROCESSOR: Dict[str, Type[T_Processor]] = {
     'nano_llm': NanoLLMProcessor,
 }
 
-VIDEO_DEVICE_INPUT: Dict[str, Type[T_VideoInput]] = {
+VIDEO_DEVICE_INPUT: Dict[str, Type[T_VideoDeviceInput]] = {
     'nano_llm': NanoLLMVideoDeviceInput,
 }
 
-VIDEO_STREAM_INPUT: Dict[str, Type[T_VideoInput]] = {
+VIDEO_STREAM_INPUT: Dict[str, Type[T_VideoStreamInput]] = {
+    'vila': VILAVideoStreamInput,
     'nano_llm': NanoLLMVideoStreamInput,
 }
