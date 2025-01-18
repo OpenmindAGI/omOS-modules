@@ -37,25 +37,6 @@ class VILAArgParser(argparse.ArgumentParser):
         # Standalone mode options
         if "standalone" in extras:
             self.add_argument(
-                "--log-level",
-                type=str,
-                default="INFO",
-                choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                help="Set the logging level",
-            )
-            self.add_argument(
-                "--ws-host",
-                type=str,
-                default="localhost",
-                help="WebSocket server hostname",
-            )
-            self.add_argument(
-                "--ws-port",
-                type=int,
-                default=8765,
-                help="WebSocket server port",
-            )
-            self.add_argument(
                 "--fps",
                 type=int,
                 default=10,

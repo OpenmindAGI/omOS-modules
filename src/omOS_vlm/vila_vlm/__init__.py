@@ -6,7 +6,8 @@ for real-time video analysis and description generation.
 """
 
 from .vila_processor import VILAProcessor
+from .video_stream_input import VideoStreamInput
 from .args import VILAArgParser
 from .__main__ import main
 
-__all__ = ["VILAProcessor", "VILAArgParser", "main"]
+__all__ = ["VILAProcessor", "VILAArgParser", "VideoStreamInput", "main"]

@@ -17,7 +17,7 @@ from ..vila_vlm import VideoStreamInput as VILAVideoStreamInput
 
 T_Parser = TypeVar('T_Parser', bound=argparse.ArgumentParser)
 T_Processor = TypeVar('T_Processor', NanoLLMProcessor, VILAProcessor)
-T_VideoDeviceInput = TypeVar('T_VideoDeviceInput', NanoLLMVideoDeviceInput)
+T_VideoDeviceInput = TypeVar('T_VideoDeviceInput', bound=NanoLLMVideoDeviceInput)
 T_VideoStreamInput = TypeVar('T_VideoStreamInput', NanoLLMVideoStreamInput, VILAVideoStreamInput)
 
 MODEL_CONFIGS: Dict[str, List[str]] = {
