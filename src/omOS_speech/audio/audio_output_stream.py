@@ -5,6 +5,7 @@ import json
 import base64
 import threading
 import argparse
+import time
 from queue import Queue, Empty
 from typing import Optional, Callable
 
@@ -142,6 +143,8 @@ class AudioOutputStream():
                         self._tts_callback(True)
 
                         self.stream.write(audio_bytes)
+
+                        time.sleep(0.5)
 
                         self._tts_callback(False)
 
