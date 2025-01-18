@@ -7,7 +7,7 @@ import logging
 from .prompts import DefaultChatPrompts, DefaultCompletionPrompts, load_prompts
 
 
-class ArgParser(argparse.ArgumentParser):
+class NanoLLMArgParser(argparse.ArgumentParser):
     """
     Dynamically adds extra command-line args that are commonly used by various subsystems.
     """

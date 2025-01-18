@@ -5,11 +5,10 @@ import argparse
 
 from typing import Optional, Any
 
-## TODO: ArgParser should be defined in om1_core_utils
-from .nv_nano_llm import VLMProcessor, VideoDeviceInput, VideoStreamInput, ArgParser
 from omOS_utils import ws
 from .video import VideoStream
 from .processor import ConnectionProcessor
+from .config import ConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +40,13 @@ class Application:
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.ws_server: ws.Server = None
+
+        self.config_manager = ConfigManager()
+
         self.connection_processor: Optional[ConnectionProcessor] = None
-        self.video_device_processor: Optional[VideoDeviceInput] = None
-        self.vlm_processor: Optional[VLMProcessor] = None
+        self.video_device_processor: Optional[self.config_manager.video_device_input] = None
+        self.vlm_processor: Optional[self.config_manager.vlm_processor] = None
+
         self.video_stream: Optional[VideoStream] = None
         self.video_source: Optional[Any] = None
         self.video_output: Optional[Any] = None
@@ -70,7 +73,7 @@ class Application:
         argparse.Namespace
             Parsed command-line arguments
         """
-        parser = ArgParser(extras=ArgParser.Defaults)
+        parser: argparse.ArgumentParser = ConfigManager.get_parser_for_model()
         parser.add_argument("--ws-host", type=str, default="localhost", help="WebSocket server host")
         parser.add_argument("--ws-port", type=int, help="WebSocket server port")
         parser.add_argument("--rtp-url", type=str, help="RTP URL for compressed video stream")
@@ -105,11 +108,11 @@ class Application:
         self.ws_server = ws.Server(host=self.args.ws_host, port=self.args.ws_port)
 
         if self.args.server_mode:
-            self.connection_processor = ConnectionProcessor(self.args, VLMProcessor, VideoStreamInput)
+            self.connection_processor = ConnectionProcessor(self.args, self.config_manager.vlm_processor, self.config_manager.video_stream_input)
             self.connection_processor.set_server(self.ws_server)
         else:
-            self.vlm_processor = VLMProcessor(self.args, self.ws_server.handle_global_response)
-            self.video_device_processor = VideoDeviceInput()
+            self.vlm_processor =  self.config_manager.vlm_processor(self.args, self.ws_server.handle_global_response)
+            self.video_device_processor = self.config_manager.video_stream_input()
             self.video_source, self.video_output = self.video_device_processor.setup_video_devices(
                 self.args,
                 self.vlm_processor.on_video
