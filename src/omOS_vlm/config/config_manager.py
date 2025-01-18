@@ -1,17 +1,15 @@
 import argparse
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Optional
 
 from omOS_utils import singleton
 
-from . import (
+from .config import (
     MODEL_CONFIGS,
     MODEL_PARSERS,
     VLM_PROCESSOR,
     VIDEO_DEVICE_INPUT,
     VIDEO_STREAM_INPUT,
-    T_Parser,
-    T_Processor,
-    T_VideoInput,
+    T_Parser
 )
 
 @singleton

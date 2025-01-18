@@ -152,7 +152,7 @@ class NanoLLMArgParser(argparse.ArgumentParser):
         args = super().parse_args(**kwargs)
 
         if hasattr(args, 'prompt'):
-            args.prompt = ArgParser.parse_prompt_args(args.prompt)
+            args.prompt = NanoLLMArgParser.parse_prompt_args(args.prompt)
 
         if hasattr(args, 'system_prompt'):
             args.system_prompt = load_prompts(args.system_prompt, concat=True)
