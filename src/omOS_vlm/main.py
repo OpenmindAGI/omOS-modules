@@ -77,7 +77,6 @@ class Application:
         parser: argparse.ArgumentParser = config_manager.parse_model_arguments()
 
         # Add other agruments for WebSocket server and video streaming
-        parser.add_argument("--model-name", type=str, help="VLM model path/identifier")
         parser.add_argument("--ws-host", type=str, default="localhost", help="WebSocket server host")
         parser.add_argument("--ws-port", type=int, help="WebSocket server port")
         parser.add_argument("--rtp-url", type=str, help="RTP URL for compressed video stream")
