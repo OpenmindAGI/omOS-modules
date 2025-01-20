@@ -51,9 +51,9 @@ class NanoLLMArgParser(argparse.ArgumentParser):
               pass
 
         if 'generation' in extras:
-            self.add_argument("--max-context-len", type=int, default=None,
+            self.add_argument("--max-context-len", type=int, default=256,
                 help="override the model's default context window length (in tokens)  This should include space for model output (up to --max-new-tokens)  Lowering it from the default (e.g. 4096 for Llama) will reduce memory usage.  By default, it's inherited from the model's max length.")
-            self.add_argument("--max-new-tokens", type=int, default=128,
+            self.add_argument("--max-new-tokens", type=int, default=32,
                 help="the maximum number of new tokens to generate, in addition to the prompt")
             self.add_argument("--min-new-tokens", type=int, default=-1,
                 help="force the model to generate a minimum number of output tokens")

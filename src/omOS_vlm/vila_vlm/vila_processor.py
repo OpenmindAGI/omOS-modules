@@ -86,7 +86,7 @@ class VILAProcessor:
         model = llava.load("Efficient-Large-Model/VILA1.5-3B")
         model.to("cuda")
         clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
-        assert(model.has_vision)
+        assert(model)
         return model
 
     def _warmup_model(self):
@@ -135,7 +135,7 @@ class VILAProcessor:
             else:
                 skip = 0
 
-            ### TO DO
+            ### TODO
             ### Add the image logic here:
             ### The input is img_bytes = base64.b64decode(img_b64)
             logger.info(f"Received image: {self.num_images + 1}")

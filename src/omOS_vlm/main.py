@@ -54,9 +54,6 @@ class Application:
 
         self.args.ws_port = self.args.ws_port or 6789
         self.args.rtp_url = self.args.rtp_url or "rtp://192.168.1.170:1234"
-        self.args.model = self.args.model or "Efficient-Large-Model/VILA1.5-3b"
-        self.args.max_context_len = self.args.max_context_len or 256
-        self.args.max_new_tokens = self.args.max_new_tokens or 32
 
         # Set logging level in the lower level modules
         logging.basicConfig(level=getattr(logging, self.args.log_level.upper()))
