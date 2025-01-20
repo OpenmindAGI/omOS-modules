@@ -76,7 +76,7 @@ class VILAProcessor:
 
         Returns
         -------
-        llava.PreTrainedModel
+        PreTrainedModel
             Initialized model instance
 
         Raises

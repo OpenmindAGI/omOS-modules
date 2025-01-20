@@ -1,5 +1,6 @@
 import argparse
 from transformers import PreTrainedModel
+from typing import Optional
 import logging
 
 from omOS_utils import singleton
@@ -33,14 +34,22 @@ class VILAModelLoader:
         args : argparse.Namespace
             Command line arguments for model configuration.
         """
-        self.model = self._load_model()
+        # Load the VILA model arguments
+        self.args = args
+
+        # Initialize model instance
+        self._model: Optional[PreTrainedModel] = None
+
+        # Load the model
+        self._model = self._load_model()
+
     def _load_model(self) -> PreTrainedModel:
         """
         Load the VILA model and move it to CUDA device.
 
         Returns
         -------
-        llava.PreTrainedModel
+        PreTrainedModel
             Loaded VILA model instance.
 
         Raises
@@ -64,9 +73,21 @@ class VILAModelLoader:
 
         Returns
         -------
-        llava.PreTrainedModel
+        PreTrainedModel
             The loaded VILA model instance.
         """
-        if not self.model:
-            self.model = self._load_model()
-        return self.model
+        if not self._model:
+            self._model = self._load_model()
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        """
+        Set the VILA model instance.
+
+        Parameters
+        ----------
+        value : PreTrainedModel
+            The VILA model instance to set.
+        """
+        self._model = value
