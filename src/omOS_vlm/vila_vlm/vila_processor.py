@@ -1,25 +1,30 @@
 import logging
-import json
-from typing import Optional, Callable, List
 import argparse
-import time
-import threading
+from typing import Optional, Any, Callable, Union
 
+# llava is only on VILA server
+# The dependency (bitsandbytes) is not available for Mac M chips
 try:
-    from omOS_utils.ws.client import Client
+    import llava
+    from llava import conversation as clib
+    from llava.media import Image, Video
+    from transformers import GenerationConfig
 except ModuleNotFoundError:
-    Client = None
+    llava = None
+    clib = None
+    Image = None
+    Video = None
+    GenerationConfig= None
 
 logger = logging.getLogger(__name__)
 
-
 class VILAProcessor:
     """
-    VILA Vision Language Model processor for real-time video analysis.
+    Vision Language Model (VLM) processor for real-time video analysis.
 
-    Processes video frames through VILA to generate text descriptions
-    of interesting aspects in the video stream. Communicates with a remote
-    VILA server via WebSocket.
+    Processes video frames through a vision-language model to generate text descriptions
+    of interesting aspects in the video stream. Designed specifically for NVIDIA Jetson
+    devices using the nano_llm framework.
 
     Parameters
     ----------
@@ -29,87 +34,86 @@ class VILAProcessor:
         Callback function for processing model responses,
         by default None
     """
+    def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable[[str], None]] = None):
+        # Load the VILA model
+        self.model = self._initialize_model(model_args)
 
-    def __init__(
-        self,
-        model_args: argparse.Namespace,
-        callback: Optional[Callable[[str], None]] = None,
-    ):
-        """
-        Initialize VILA processor.
-
-        Parameters
-        ----------
-        model_args : argparse.Namespace
-            Command line arguments for model configuration
-        callback : Optional[Callable[[str], None]], optional
-            Callback function for processing model responses
-        """
+        # Set model arguments and configuration
         self.model_args = model_args
+        self.model_config = GenerationConfig(
+            max_new_tokens=48,
+            temperature=0.7,
+            top_p=0.95,
+            do_sample=True,
+        )
+
+        # Register the callback function
         self.callback = callback
-        self.response: str = ""
+
+        # Image processing variables
+        self.last_image: Any = None
+        self.num_images: int = 0
+
+        # response variables
+        self.raw_response: str = 'test'
+        self.response: str = ''
+
+        # Set the running flag
         self.running: bool = True
-        self.image_buffer: List[str] = []
-        self.response_timeout: int = 10 * 1000  # 10 seconds
-        self.waiting_for_response: bool = False
 
-        # Initialize WebSocket client
-        host = getattr(
-            model_args, "vila_host", "localhost"
-        )  # Default to localhost if not set
-        port = getattr(model_args, "vila_port", 8000)  # Default to 8000 if not set
+        # Warm up the model
+        self._warmup_model()
 
-        self.ws_client = Client(f"ws://{host}:{port}/ws")
-        self.ws_client.register_message_callback(self._handle_ws_message)
-        self.ws_client.start()
-
-    def _handle_ws_message(self, message: str):
+    def _initialize_model(self, args: argparse.Namespace):
         """
-        Handle incoming WebSocket messages.
+        Initialize the vision-language model.
 
         Parameters
         ----------
-        message : str
-            The received message in JSON format
-        """
-        try:
-            data = json.loads(message)
-            if "response" in data:
-                self.response = data["response"]
-                logger.info(f"VILA response: {self.response}")
-                self.last_response_time = time.time() * 1000
-                if self.callback:
-                    self.callback(json.dumps({"vila_reply": self.response}))
-                self.waiting_for_response = False
-                self.timeout_thread.cancel()
-            elif "error" in data:
-                logger.error(f"VILA server error: {data['error']}")
-        except Exception as e:
-            logger.error(f"Error handling WebSocket message: {e}")
+        args : argparse.Namespace
+            Model configuration arguments
 
-    def on_video(self, image: str):
+        Returns
+        -------
+        nano_llm.NanoLLM
+            Initialized model instance
+
+        Raises
+        ------
+        AssertionError
+            If the model does not have vision capabilities
         """
-        Callback function for buffering video frames.
-        Skips frames if necessary and buffers them until the batch size is reached.
+        model = llava.load("Efficient-Large-Model/VILA1.5-3B")
+        model.to("cuda")
+        clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
+        assert(model.has_vision)
+        return model
+
+    def _warmup_model(self):
+        """
+        Perform model warmup with a simple query.
+
+        Sends a basic arithmetic query to ensure the model is loaded
+        and ready for processing.
+        """
+
+    def on_video(self, image: Any) -> Any:
+        """
+        Process incoming video frames.
 
         Parameters
         ----------
-        image : str
-            The image in base64 format
-        """
-        # Make sure image buffer always gets the latest image but stays the same size
-        if len(self.image_buffer) == self.model_args.vila_batch_size:
-            self.image_buffer.pop(0)
-        self.image_buffer.append(image)
+        image : Any
+            Input video frame to process
 
-    def handle_timeout(self):
+        Returns
+        -------
+        Any
+            Annotated video frame
         """
-        Handle timeout for VILA response.
-        """
-        logger.warning("VILA response timeout")
-        self.waiting_for_response = False
+        return image
 
-    def process_frames(self):
+    def process_frames(self, video_output: Any, video_source: Any):
         """
         Main frame processing loop.
 
@@ -120,35 +124,68 @@ class VILAProcessor:
         video_source : Any
             Video input source handler
         """
+        skip = 0
         while self.running:
-            # Send accumulated images to VILA server
-            try:
-                if (
-                    self.ws_client.is_connected()
-                    and len(self.image_buffer) == self.model_args.vila_batch_size
-                    and not self.waiting_for_response
-                ):
-                    logger.info(
-                        f"Sending {len(self.image_buffer)} images to remote VILA server"
-                    )
-                    message = {
-                        "images": self.image_buffer,
-                        "prompt": "What is the most interesting aspect in this series of images?",
-                    }
-                    self.ws_client.send_message(json.dumps(message))
-                    self.waiting_for_response = True
-                    # Fire a timeout after timeout seconds
-                    self.timeout_thread = threading.Timer(
-                        self.response_timeout / 1000, self.handle_timeout
-                    )
-                    self.timeout_thread.start()
-            except Exception as e:
-                logger.error(f"Error sending frames to VILA server: {e}")
+            if self.last_image is None:
+                continue
+
+            if skip < 5:
+                skip += 1
+                continue
+            else:
+                skip = 0
+
+            ### TO DO
+            ### Add the image logic here:
+            ### The input is img_bytes = base64.b64decode(img_b64)
+            logger.info(f"Received image: {self.num_images + 1}")
+
+            # self.chat_history.append('user', text=f'Image {self.num_images + 1}:')
+            # self.chat_history.append('user', image=self.last_image)
+            self.last_image = None
+
+            if self.num_images < 5:
+                self.num_images += 1
+                continue
+            else:
+                self.num_images = 0
+
+            # self.chat_history.append('user', "What is the most interesting aspect in this series of images?")
+            # embedding, _ = self.chat_history.embed_chat()
+
+            # reply = self.model.generate(
+            #     embedding,
+            #     kv_cache=self.chat_history.kv_cache,
+            #     max_new_tokens=self.model_args.max_new_tokens,
+            #     min_new_tokens=self.model_args.min_new_tokens,
+            #     do_sample=self.model_args.do_sample,
+            #     repetition_penalty=self.model_args.repetition_penalty,
+            #     temperature=self.model_args.temperature,
+            #     top_p=self.model_args.top_p,
+            # )
+
+            # for token in reply:
+            #     if len(reply.tokens) == 1:
+            #         self.raw_response = token
+            #     else:
+            #         self.raw_response = self.raw_response + token
+
+            # self.response = self.cleanup(self.raw_response)
+            # logger.info(f'VLM response: {self.response}')
+
+            # if self.callback:
+            #     self.callback(json.dumps({"vlm_reply": self.response}))
+
+            # self.chat_history.reset()
+
+            # if video_source.eos:
+            #     video_output.stream.Close()
+            #     break
 
     def stop(self):
         """
-        Stop frame processing and cleanup resources.
+        Stop frame processing.
+
+        Sets the running flag to False to terminate processing loop.
         """
         self.running = False
-        if self.ws_client:
-            self.ws_client.stop()

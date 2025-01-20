@@ -43,12 +43,10 @@ class VideoStreamInput:
         try:
            # Decode base64 image
             img_bytes = base64.b64decode(message)
-            img_np = np.frombuffer(img_bytes, dtype=np.uint8)
-            frame = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
 
             if self.frame_callback:
                 # Process frame through VLM pipeline
-                self.frame_callback(frame)
+                self.frame_callback(img_bytes)
 
         except Exception as e:
             logger.error(f"Error processing WebSocket message: {e}")
