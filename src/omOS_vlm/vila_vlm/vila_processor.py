@@ -2,6 +2,8 @@ import logging
 import argparse
 from typing import Optional, Any, Callable, Union
 
+from .model_loader import VILAModelLoader
+
 # llava is only on VILA server
 # The dependency (bitsandbytes) is not available for Mac M chips
 try:
@@ -64,7 +66,7 @@ class VILAProcessor:
         # Warm up the model
         self._warmup_model()
 
-    def _initialize_model(self, args: argparse.Namespace):
+    def _initialize_model(self, args: argparse.Namespace) -> llava.PreTrainedModel:
         """
         Initialize the vision-language model.
 
@@ -75,7 +77,7 @@ class VILAProcessor:
 
         Returns
         -------
-        nano_llm.NanoLLM
+        llava.PreTrainedModel
             Initialized model instance
 
         Raises
@@ -83,11 +85,8 @@ class VILAProcessor:
         AssertionError
             If the model does not have vision capabilities
         """
-        model = llava.load("Efficient-Large-Model/VILA1.5-3B")
-        model.to("cuda")
-        clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
-        assert(model)
-        return model
+        model_loader = VILAModelLoader(args)
+        return model_loader.model
 
     def _warmup_model(self):
         """
