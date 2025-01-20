@@ -1,6 +1,7 @@
 import logging
 import argparse
-from typing import Optional, Any, Callable, Union
+from transformers import GenerationConfig, PreTrainedModel
+from typing import Optional, Any, Callable
 
 from .model_loader import VILAModelLoader
 
@@ -10,13 +11,11 @@ try:
     import llava
     from llava import conversation as clib
     from llava.media import Image, Video
-    from transformers import GenerationConfig
 except ModuleNotFoundError:
     llava = None
     clib = None
     Image = None
     Video = None
-    GenerationConfig= None
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ class VILAProcessor:
         # Warm up the model
         self._warmup_model()
 
-    def _initialize_model(self, args: argparse.Namespace) -> llava.PreTrainedModel:
+    def _initialize_model(self, args: argparse.Namespace) -> PreTrainedModel:
         """
         Initialize the vision-language model.
 
