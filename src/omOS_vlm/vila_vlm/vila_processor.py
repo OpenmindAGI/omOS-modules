@@ -1,6 +1,5 @@
 import logging
 import argparse
-from transformers import GenerationConfig, PreTrainedModel
 from typing import Optional, Any, Callable
 
 from .model_loader import VILAModelLoader
@@ -11,6 +10,9 @@ try:
     import llava
     from llava import conversation as clib
     from llava.media import Image, Video
+
+    # PreTrainedModel doesn't work on Mac M chips
+    from transformers import GenerationConfig
 except ModuleNotFoundError:
     llava = None
     clib = None
@@ -41,12 +43,18 @@ class VILAProcessor:
 
         # Set model arguments and configuration
         self.model_args = model_args
-        self.model_config = GenerationConfig(
-            max_new_tokens=48,
-            temperature=0.7,
-            top_p=0.95,
-            do_sample=True,
-        )
+
+        # This doesn't work on Mac M chips
+        self.model_config: Optional[GenerationConfig] = None
+        try:
+            self.model_config = GenerationConfig(
+                max_new_tokens=48,
+                temperature=0.7,
+                top_p=0.95,
+                do_sample=True,
+            )
+        except Exception as e:
+            logger.error(f"Error initializing model configuration: {e}")
 
         # Register the callback function
         self.callback = callback
@@ -65,7 +73,7 @@ class VILAProcessor:
         # Warm up the model
         self._warmup_model()
 
-    def _initialize_model(self, args: argparse.Namespace) -> PreTrainedModel:
+    def _initialize_model(self, args: argparse.Namespace):
         """
         Initialize the vision-language model.
 

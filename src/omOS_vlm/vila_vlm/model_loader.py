@@ -1,6 +1,5 @@
 import argparse
-from transformers import PreTrainedModel
-from typing import Optional
+from typing import Optional, Any
 import logging
 
 from omOS_utils import singleton
@@ -10,6 +9,9 @@ from omOS_utils import singleton
 try:
     import llava
     from llava import conversation as clib
+
+    # PreTrainedModel doesn't work on Mac M chips
+    from transformers import PreTrainedModel
 except ModuleNotFoundError:
     llava = None
 
@@ -43,7 +45,7 @@ class VILAModelLoader:
         # Load the model
         self._model = self._load_model()
 
-    def _load_model(self) -> PreTrainedModel:
+    def _load_model(self) -> Optional[Any]:
         """
         Load the VILA model and move it to CUDA device.
 
@@ -67,7 +69,7 @@ class VILAModelLoader:
             raise Exception("Failed to load VILA model") from e
 
     @property
-    def model(self) -> PreTrainedModel:
+    def model(self) -> Optional[Any]:
         """
         Get the VILA model instance, loading it if not already loaded.
 
