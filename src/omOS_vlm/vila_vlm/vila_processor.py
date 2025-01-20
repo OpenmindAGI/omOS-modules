@@ -4,6 +4,7 @@ from typing import Optional, Callable, List
 import argparse
 import time
 import threading
+from interfaces.vlm_processor_interface import VLMProcessorInterface
 
 try:
     from omOS_utils.ws.client import Client
@@ -13,7 +14,7 @@ except ModuleNotFoundError:
 logger = logging.getLogger(__name__)
 
 
-class VILAProcessor:
+class VILAProcessor(VLMProcessorInterface):
     """
     VILA Vision Language Model processor for real-time video analysis.
 
