@@ -24,7 +24,7 @@ class NanoLLMArgParser(argparse.ArgumentParser):
 
         # LLM
         if 'model' in extras:
-            self.add_argument("--model", type=str, default=None, #required=True,
+            self.add_argument("--model", type=str, default="Efficient-Large-Model/VILA1.5-3b", #required=True,
                 help="path to the model, or repository on HuggingFace Hub")
             self.add_argument("--quantization", type=str, default=None,
                 help="for MLC, the type of quantization to apply (default q4f16_ft)  For AWQ, the path to the quantized weights.")
