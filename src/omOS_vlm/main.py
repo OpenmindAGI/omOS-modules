@@ -140,7 +140,7 @@ class Application:
             logger.info("Streaming video to WebSocket server")
             self.setup_video_streaming()
         else:
-            logger.info(f"Starting VLM processing with model: {self.args.model}")
+            logger.info(f"Starting VLM processing with model: {self.args.model_name}")
             self.setup_vlm_processing()
 
         self.running = True
