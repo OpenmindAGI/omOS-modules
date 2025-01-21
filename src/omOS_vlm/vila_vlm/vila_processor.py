@@ -193,7 +193,7 @@ class VILAProcessor:
                             os.unlink(temp_path)
                     raise Exception(f"Invalid image data: {str(e)}")
             end = time.time() * 1000
-            print(f"Time taken: {end - start} ms")
+            logger.info(f"Time taken to infer: {end - start} ms")
 
             # Add text prompt
             prompt_list.append(prompt)
