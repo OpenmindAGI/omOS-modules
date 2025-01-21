@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger(__name__)
 
+
 class VLMProcessor:
     """
     Vision Language Model (VLM) processor for real-time video analysis.
@@ -35,15 +36,22 @@ class VLMProcessor:
         Callback function for processing model responses,
         by default None
     """
-    def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable[[str], None]] = None):
+
+    def __init__(
+        self,
+        model_args: argparse.Namespace,
+        callback: Optional[Callable[[str], None]] = None,
+    ):
         self.model: nano_llm.NanoLLM = self._initialize_model(model_args)
         self.model_args = model_args
-        self.chat_history: nano_llm.ChatHistory = self._initialize_chat_history(model_args)
+        self.chat_history: nano_llm.ChatHistory = self._initialize_chat_history(
+            model_args
+        )
         self.callback = callback
         self.last_image: Any = None
         self.num_images: int = 0
-        self.raw_response: str = 'test'
-        self.response: str = ''
+        self.raw_response: str = "test"
+        self.response: str = ""
         self.font: Any = cudaFont()
         self.running: bool = True
 
@@ -78,7 +86,7 @@ class VLMProcessor:
             vision_model=args.vision_model,
             vision_scaling=args.vision_scaling,
         )
-        assert(model.has_vision)
+        assert model.has_vision
         return model
 
     def _initialize_chat_history(self, args: argparse.Namespace):
@@ -104,8 +112,12 @@ class VLMProcessor:
         Sends a basic arithmetic query to ensure the model is loaded
         and ready for processing.
         """
-        self.chat_history.append(role='user', text='What is 2+2?')
-        logging.info(f"Warmup response: '{self.model.generate(self.chat_history.embed_chat()[0], streaming=False)}'".replace('\n','\\n'))
+        self.chat_history.append(role="user", text="What is 2+2?")
+        logging.info(
+            f"Warmup response: '{self.model.generate(self.chat_history.embed_chat()[0], streaming=False)}'".replace(
+                "\n", "\\n"
+            )
+        )
         self.chat_history.reset()
 
     def cleanup(self, text: str) -> str:
@@ -124,11 +136,21 @@ class VLMProcessor:
         """
         response = remove_special_tokens(text)
         response = response.lower()
-        response = response.replace("the most interesting aspect of this series of images is", "You see")
-        response = response.replace("the most interesting aspect of the series of images is", "You see")
-        response = response.replace("the most interesting aspect of the images is", "You see")
-        response = response.replace("the most interesting aspect of these images is", "You see")
-        response = response.replace("the most interesting aspect of the video is", "You see")
+        response = response.replace(
+            "the most interesting aspect of this series of images is", "You see"
+        )
+        response = response.replace(
+            "the most interesting aspect of the series of images is", "You see"
+        )
+        response = response.replace(
+            "the most interesting aspect of the images is", "You see"
+        )
+        response = response.replace(
+            "the most interesting aspect of these images is", "You see"
+        )
+        response = response.replace(
+            "the most interesting aspect of the video is", "You see"
+        )
         return response
 
     def on_video(self, image: Any) -> Any:
@@ -151,7 +173,15 @@ class VLMProcessor:
         if self.num_images >= 5:
             annotation = "VLM:" + self.response
 
-        wrap_text(self.font, image, text=annotation, x=5, y=5, color=(255,0,0), background=self.font.Gray50)
+        wrap_text(
+            self.font,
+            image,
+            text=annotation,
+            x=5,
+            y=5,
+            color=(255, 0, 0),
+            background=self.font.Gray50,
+        )
         return image
 
     def process_frames(self, video_output: Any, video_source: Any):
@@ -176,8 +206,8 @@ class VLMProcessor:
             else:
                 skip = 0
 
-            self.chat_history.append('user', text=f'Image {self.num_images + 1}:')
-            self.chat_history.append('user', image=self.last_image)
+            self.chat_history.append("user", text=f"Image {self.num_images + 1}:")
+            self.chat_history.append("user", image=self.last_image)
             self.last_image = None
 
             if self.num_images < 5:
@@ -186,7 +216,9 @@ class VLMProcessor:
             else:
                 self.num_images = 0
 
-            self.chat_history.append('user', "What is the most interesting aspect in this series of images?")
+            self.chat_history.append(
+                "user", "What is the most interesting aspect in this series of images?"
+            )
             embedding, _ = self.chat_history.embed_chat()
 
             reply = self.model.generate(
@@ -207,7 +239,7 @@ class VLMProcessor:
                     self.raw_response = self.raw_response + token
 
             self.response = self.cleanup(self.raw_response)
-            logger.info(f'VLM response: {self.response}')
+            logger.info(f"VLM response: {self.response}")
 
             if self.callback:
                 self.callback(json.dumps({"vlm_reply": self.response}))

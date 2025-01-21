@@ -1,6 +1,14 @@
 import logging
 import argparse
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, List
+import json
+import time
+import tempfile
+import os
+import base64
+import torch
+from io import BytesIO
+from PIL import Image as PILImage
 
 from .model_loader import VILAModelLoader
 
@@ -21,6 +29,7 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger(__name__)
 
+
 class VILAProcessor:
     """
     Vision Language Model (VLM) processor for real-time video analysis.
@@ -37,7 +46,12 @@ class VILAProcessor:
         Callback function for processing model responses,
         by default None
     """
-    def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable[[str], None]] = None):
+
+    def __init__(
+        self,
+        model_args: argparse.Namespace,
+        callback: Optional[Callable[[str], None]] = None,
+    ):
         # Load the VILA model
         self.model = self._initialize_model(model_args)
 
@@ -60,12 +74,10 @@ class VILAProcessor:
         self.callback = callback
 
         # Image processing variables
-        self.last_image: Any = None
-        self.num_images: int = 0
+        self.image_buffer: List[str] = []
 
         # response variables
-        self.raw_response: str = 'test'
-        self.response: str = ''
+        self.response: str = ""
 
         # Set the running flag
         self.running: bool = True
@@ -102,8 +114,12 @@ class VILAProcessor:
         Sends a basic arithmetic query to ensure the model is loaded
         and ready for processing.
         """
+        self.model.generate_content(
+            ["What is the sum of 1 and 2?", "What is the sum of 3 and 4?"],
+            self.model_config,
+        )
 
-    def on_video(self, image: Any) -> Any:
+    def on_video(self, image: bytes) -> Any:
         """
         Process incoming video frames.
 
@@ -117,7 +133,10 @@ class VILAProcessor:
         Any
             Annotated video frame
         """
-        return image
+        # Make sure image buffer always gets the latest image but stays the same size
+        if len(self.image_buffer) == self.model_args.vila_batch_size:
+            self.image_buffer.pop(0)
+        self.image_buffer.append(image)
 
     def process_frames(self, video_output: Any, video_source: Any):
         """
@@ -130,63 +149,68 @@ class VILAProcessor:
         video_source : Any
             Video input source handler
         """
-        skip = 0
         while self.running:
-            if self.last_image is None:
-                continue
+            # Send accumulated images to VILA server
+            try:
+                if len(self.image_buffer) == self.model_args.vila_batch_size:
+                    logger.info(f"Processing {len(self.image_buffer)} images")
+                    message = {
+                        "images": self.image_buffer,
+                        "prompt": "What is the most interesting aspect in this series of images?",
+                    }
 
-            if skip < 5:
-                skip += 1
-                continue
-            else:
-                skip = 0
+                    self.response = self.generate_with_images(
+                        message["images"], message["prompt"]
+                    )
 
-            ### TODO
-            ### Add the image logic here:
-            ### The input is img_bytes = base64.b64decode(img_b64)
-            logger.info(f"Received image: {self.num_images + 1}")
+                    if self.callback:
+                        self.callback(json.dumps({"vlm_reply": self.response}))
+            except Exception as e:
+                logger.error(f"Error sending frames to VILA server: {e}")
 
-            # self.chat_history.append('user', text=f'Image {self.num_images + 1}:')
-            # self.chat_history.append('user', image=self.last_image)
-            self.last_image = None
+    def generate_with_images(self, images: List[bytes], prompt: str):
+        temp_files = []
+        try:
+            # Prepare multi-modal prompt
+            prompt_list = []
 
-            if self.num_images < 5:
-                self.num_images += 1
-                continue
-            else:
-                self.num_images = 0
+            # Convert base64 images to Image objects
+            start = time.time() * 1000
+            for img_bytes in images:
+                try:
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                    temp_files.append(temp_file.name)
 
-            # self.chat_history.append('user', "What is the most interesting aspect in this series of images?")
-            # embedding, _ = self.chat_history.embed_chat()
+                    img = PILImage.open(BytesIO(img_bytes))
+                    img.save(temp_file.name)
+                    temp_file.close()
 
-            # reply = self.model.generate(
-            #     embedding,
-            #     kv_cache=self.chat_history.kv_cache,
-            #     max_new_tokens=self.model_args.max_new_tokens,
-            #     min_new_tokens=self.model_args.min_new_tokens,
-            #     do_sample=self.model_args.do_sample,
-            #     repetition_penalty=self.model_args.repetition_penalty,
-            #     temperature=self.model_args.temperature,
-            #     top_p=self.model_args.top_p,
-            # )
+                    prompt_list.append(Image(temp_file.name))
+                except Exception as e:
+                    # Clean up any temporary files created so far
+                    for temp_path in temp_files:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)
+                    raise Exception(f"Invalid image data: {str(e)}")
+            end = time.time() * 1000
+            print(f"Time taken: {end - start} ms")
 
-            # for token in reply:
-            #     if len(reply.tokens) == 1:
-            #         self.raw_response = token
-            #     else:
-            #         self.raw_response = self.raw_response + token
+            # Add text prompt
+            prompt_list.append(prompt)
 
-            # self.response = self.cleanup(self.raw_response)
-            # logger.info(f'VLM response: {self.response}')
+            # Generate response
+            start = time.time() * 1000
+            with torch.inference_mode():
+                response = self.model.generate_content(prompt_list, self.model_config)
+            end = time.time() * 1000
+            print(f"Time taken to generate: {end - start} ms")
 
-            # if self.callback:
-            #     self.callback(json.dumps({"vlm_reply": self.response}))
-
-            # self.chat_history.reset()
-
-            # if video_source.eos:
-            #     video_output.stream.Close()
-            #     break
+            return response
+        finally:
+            # Clean up temporary files
+            for temp_path in temp_files:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
 
     def stop(self):
         """
