@@ -9,7 +9,8 @@ from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
-class VideoStream():
+
+class VideoStream:
     """
     Manages video capture and streaming from a camera device.
 
@@ -23,8 +24,16 @@ class VideoStream():
         Callback function to handle processed frame data.
         Function receives base64 encoded frame data.
         By default None
+    fps : Optional[int], optional
+        Frames per second to capture.
+        By default 30
     """
-    def __init__(self, frame_callback: Optional[Callable[[str], None]] = None):
+
+    def __init__(
+        self,
+        frame_callback: Optional[Callable[[str], None]] = None,
+        fps: Optional[int] = 30,
+    ):
         self._video_thread: Optional[threading.Thread] = None
 
         # Callback for video frame data
@@ -34,6 +43,9 @@ class VideoStream():
         self._cap = None
 
         self.running: bool = True
+
+        self.fps = fps
+        self.frame_delay = 1.0 / fps  # Calculate delay between frames
 
     def on_video(self):
         """
@@ -49,10 +61,10 @@ class VideoStream():
         """
 
         devices = enumerate_video_devices()
-        if platform.system() == 'Darwin':
+        if platform.system() == "Darwin":
             camindex = 0 if devices else 0
         else:
-            camindex = '/dev/video' + str(devices[0][0]) if devices else '/dev/video0'
+            camindex = "/dev/video" + str(devices[0][0]) if devices else "/dev/video0"
         logger.info(f"Using camera: {camindex}")
 
         self._cap = cv2.VideoCapture(camindex)
@@ -69,13 +81,15 @@ class VideoStream():
                     continue
 
                 # Convert frame to base64
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                frame_data = base64.b64encode(buffer).decode('utf-8')
+                _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                frame_data = base64.b64encode(buffer).decode("utf-8")
 
                 if self.frame_callback:
                     self.frame_callback(frame_data)
 
-                time.sleep(0.033) # 30 fps
+                time.sleep(
+                    self.frame_delay
+                )  # Use calculated frame delay instead of hardcoded value
 
         except Exception as e:
             logger.error(f"Error streaming video: {e}")
@@ -92,10 +106,7 @@ class VideoStream():
         already running.
         """
         if self._video_thread is None or not self._video_thread.is_alive():
-            self._video_thread = threading.Thread(
-                target=self.on_video,
-                daemon=True
-            )
+            self._video_thread = threading.Thread(target=self.on_video, daemon=True)
             self._video_thread.start()
             logger.info("Started video processing thread")
 

@@ -5,13 +5,13 @@ import argparse
 
 from typing import Optional, Any
 
-## TODO: ArgParser should be defined in om1_core_utils
-from .nv_nano_llm import VLMProcessor, VideoDeviceInput, VideoStreamInput, ArgParser
 from omOS_utils import ws
 from .video import VideoStream
 from .processor import ConnectionProcessor
+from .config import ConfigManager
 
 logger = logging.getLogger(__name__)
+
 
 class Application:
     """
@@ -38,12 +38,19 @@ class Application:
         - log_level : str
             Logging level (default: "INFO")
     """
+
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.ws_server: ws.Server = None
+
+        self.config_manager = ConfigManager()
+
         self.connection_processor: Optional[ConnectionProcessor] = None
-        self.video_device_processor: Optional[VideoDeviceInput] = None
-        self.vlm_processor: Optional[VLMProcessor] = None
+        self.video_device_processor: Optional[
+            self.config_manager.video_device_input
+        ] = None
+        self.vlm_processor: Optional[self.config_manager.vlm_processor] = None
+
         self.video_stream: Optional[VideoStream] = None
         self.video_source: Optional[Any] = None
         self.video_output: Optional[Any] = None
@@ -51,14 +58,13 @@ class Application:
 
         self.args.ws_port = self.args.ws_port or 6789
         self.args.rtp_url = self.args.rtp_url or "rtp://192.168.1.170:1234"
-        self.args.model = self.args.model or "Efficient-Large-Model/VILA1.5-3b"
-        self.args.max_context_len = self.args.max_context_len or 256
-        self.args.max_new_tokens = self.args.max_new_tokens or 32
 
         # Set logging level in the lower level modules
         logging.basicConfig(level=getattr(logging, self.args.log_level.upper()))
         for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).setLevel(getattr(logging, self.args.log_level.upper()))
+            logging.getLogger(name).setLevel(
+                getattr(logging, self.args.log_level.upper())
+            )
 
     @staticmethod
     def parse_arguments() -> argparse.Namespace:
@@ -70,13 +76,35 @@ class Application:
         argparse.Namespace
             Parsed command-line arguments
         """
-        parser = ArgParser(extras=ArgParser.Defaults)
-        parser.add_argument("--ws-host", type=str, default="localhost", help="WebSocket server host")
+        config_manager = ConfigManager()
+        parser: argparse.ArgumentParser = config_manager.parse_model_arguments()
+
+        # Add other agruments for WebSocket server and video streaming
+        parser.add_argument(
+            "--ws-host", type=str, default="localhost", help="WebSocket server host"
+        )
         parser.add_argument("--ws-port", type=int, help="WebSocket server port")
-        parser.add_argument("--rtp-url", type=str, help="RTP URL for compressed video stream")
-        parser.add_argument("--server-mode", default=False, action="store_true", help="Run in server mode")
-        parser.add_argument("--remote-url", type=str, help="Remote webSocket URL server for video stream input")
-        parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level")
+        parser.add_argument(
+            "--rtp-url", type=str, help="RTP URL for compressed video stream"
+        )
+        parser.add_argument(
+            "--server-mode",
+            default=False,
+            action="store_true",
+            help="Run in server mode",
+        )
+        parser.add_argument(
+            "--remote-url",
+            type=str,
+            help="Remote webSocket URL server for video stream input",
+        )
+        parser.add_argument(
+            "--log-level",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the logging level",
+        )
 
         return parser.parse_args()
 
@@ -92,7 +120,7 @@ class Application:
         self.ws_client = ws.Client(url=self.args.remote_url)
         self.ws_client.start()
 
-        self.video_stream = VideoStream(self.ws_client.send_message)
+        self.video_stream = VideoStream(self.ws_client.send_message, fps=20)
         self.video_stream.start()
 
     def setup_vlm_processing(self):
@@ -105,20 +133,27 @@ class Application:
         self.ws_server = ws.Server(host=self.args.ws_host, port=self.args.ws_port)
 
         if self.args.server_mode:
-            self.connection_processor = ConnectionProcessor(self.args, VLMProcessor, VideoStreamInput)
+            self.connection_processor = ConnectionProcessor(
+                self.args,
+                self.config_manager.vlm_processor,
+                self.config_manager.video_stream_input,
+            )
             self.connection_processor.set_server(self.ws_server)
         else:
-            self.vlm_processor = VLMProcessor(self.args, self.ws_server.handle_global_response)
-            self.video_device_processor = VideoDeviceInput()
-            self.video_source, self.video_output = self.video_device_processor.setup_video_devices(
-                self.args,
-                self.vlm_processor.on_video
+            self.vlm_processor = self.config_manager.vlm_processor(
+                self.args, self.ws_server.handle_global_response
+            )
+            self.video_device_processor = self.config_manager.video_stream_input()
+            self.video_source, self.video_output = (
+                self.video_device_processor.setup_video_devices(
+                    self.args, self.vlm_processor.on_video
+                )
             )
 
             vlm_thread = threading.Thread(
                 target=self.vlm_processor.process_frames,
                 args=(self.video_output, self.video_source),
-                daemon=True
+                daemon=True,
             )
             vlm_thread.start()
 
@@ -137,7 +172,7 @@ class Application:
             logger.info("Streaming video to WebSocket server")
             self.setup_video_streaming()
         else:
-            logger.info(f"Starting VLM processing with model: {self.args.model}")
+            logger.info(f"Starting VLM processing with model: {self.args.model_name}")
             self.setup_vlm_processing()
 
         self.running = True
@@ -178,6 +213,7 @@ class Application:
         if self.video_output:
             self.video_output.stop()
 
+
 def main():
     """
     Main entry point for the application.
@@ -187,6 +223,7 @@ def main():
     args = Application.parse_arguments()
     app = Application(args)
     app.start()
+
 
 if __name__ == "__main__":
     main()

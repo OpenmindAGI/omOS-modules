@@ -7,7 +7,7 @@ import logging
 from .prompts import DefaultChatPrompts, DefaultCompletionPrompts, load_prompts
 
 
-class ArgParser(argparse.ArgumentParser):
+class NanoLLMArgParser(argparse.ArgumentParser):
     """
     Dynamically adds extra command-line args that are commonly used by various subsystems.
     """
@@ -24,7 +24,7 @@ class ArgParser(argparse.ArgumentParser):
 
         # LLM
         if 'model' in extras:
-            self.add_argument("--model", type=str, default=None, #required=True,
+            self.add_argument("--model", type=str, default="Efficient-Large-Model/VILA1.5-3b", #required=True,
                 help="path to the model, or repository on HuggingFace Hub")
             self.add_argument("--quantization", type=str, default=None,
                 help="for MLC, the type of quantization to apply (default q4f16_ft)  For AWQ, the path to the quantized weights.")
@@ -51,9 +51,9 @@ class ArgParser(argparse.ArgumentParser):
               pass
 
         if 'generation' in extras:
-            self.add_argument("--max-context-len", type=int, default=None,
+            self.add_argument("--max-context-len", type=int, default=256,
                 help="override the model's default context window length (in tokens)  This should include space for model output (up to --max-new-tokens)  Lowering it from the default (e.g. 4096 for Llama) will reduce memory usage.  By default, it's inherited from the model's max length.")
-            self.add_argument("--max-new-tokens", type=int, default=128,
+            self.add_argument("--max-new-tokens", type=int, default=32,
                 help="the maximum number of new tokens to generate, in addition to the prompt")
             self.add_argument("--min-new-tokens", type=int, default=-1,
                 help="force the model to generate a minimum number of output tokens")
@@ -152,7 +152,7 @@ class ArgParser(argparse.ArgumentParser):
         args = super().parse_args(**kwargs)
 
         if hasattr(args, 'prompt'):
-            args.prompt = ArgParser.parse_prompt_args(args.prompt)
+            args.prompt = NanoLLMArgParser.parse_prompt_args(args.prompt)
 
         if hasattr(args, 'system_prompt'):
             args.system_prompt = load_prompts(args.system_prompt, concat=True)
