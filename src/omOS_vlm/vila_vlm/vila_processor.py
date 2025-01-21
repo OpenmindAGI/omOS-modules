@@ -193,7 +193,7 @@ class VILAProcessor:
                             os.unlink(temp_path)
                     raise Exception(f"Invalid image data: {str(e)}")
             end = time.time() * 1000
-            logger.info(f"Time taken to infer: {end - start} ms")
+            logger.debug(f"Time taken to construct image files: {end - start} ms")
 
             # Add text prompt
             prompt_list.append(prompt)
@@ -203,7 +203,7 @@ class VILAProcessor:
             with torch.inference_mode():
                 response = self.model.generate_content(prompt_list, self.model_config)
             end = time.time() * 1000
-            print(f"Time taken to generate: {end - start} ms")
+            logger.debug(f"Time taken to infer: {end - start} ms")
 
             return response
         finally:
