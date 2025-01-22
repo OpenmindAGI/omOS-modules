@@ -1,11 +1,10 @@
-import logging
-import cv2
-import base64
-import numpy as np
 import argparse
-from typing import Optional, Callable, Any
+import base64
+import logging
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
+
 
 class VideoStreamInput:
     """
@@ -19,6 +18,7 @@ class VideoStreamInput:
     The class supports real-time video processing pipelines with custom frame callbacks
     and includes error handling for various failure modes.
     """
+
     def __init__(self):
         self.running: bool = True
         self.frame_callback: Optional[Callable] = None
@@ -41,7 +41,7 @@ class VideoStreamInput:
             If frame processing fails at any stage
         """
         try:
-           # Decode base64 image
+            # Decode base64 image
             img_bytes = base64.b64decode(message)
 
             if self.frame_callback:
@@ -51,7 +51,12 @@ class VideoStreamInput:
         except Exception as e:
             logger.error(f"Error processing WebSocket message: {e}")
 
-    def setup_video_stream(self, args: argparse.Namespace, frame_callback: Optional[Callable], cuda_stream: int = 0):
+    def setup_video_stream(
+        self,
+        args: argparse.Namespace,
+        frame_callback: Optional[Callable],
+        cuda_stream: int = 0,
+    ):
         """
         Initialize video streaming components and callbacks.
 
@@ -82,7 +87,9 @@ class VideoStreamInput:
 
         return self, self.video_output
 
-    def register_frame_callback(self, frame_callback: Optional[Callable], threaded: bool = False):
+    def register_frame_callback(
+        self, frame_callback: Optional[Callable], threaded: bool = False
+    ):
         """
         Register a callback function for frame processing.
 

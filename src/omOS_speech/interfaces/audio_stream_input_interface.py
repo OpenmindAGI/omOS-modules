@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import Optional, Any
 import logging
+from abc import ABC, abstractmethod
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
 
 class AudioStreamInputInterface(ABC):
     """
@@ -25,7 +26,7 @@ class AudioStreamInputInterface(ABC):
         pass
 
     @abstractmethod
-    def setup_audio_stream(self) -> 'AudioStreamInputInterface':
+    def setup_audio_stream(self) -> "AudioStreamInputInterface":
         """
         Set up the audio stream for processing.
 

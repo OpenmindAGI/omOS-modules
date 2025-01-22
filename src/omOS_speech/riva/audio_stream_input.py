@@ -1,10 +1,11 @@
 import logging
-from queue import Queue, Empty
-from typing import Optional, Any
+from queue import Empty, Queue
+from typing import Any, Optional
 
 from ..interfaces import AudioStreamInputInterface
 
 logger = logging.getLogger(__name__)
+
 
 class AudioStreamInput(AudioStreamInputInterface):
     """
@@ -18,6 +19,7 @@ class AudioStreamInput(AudioStreamInputInterface):
     ----------
     None
     """
+
     def __init__(self):
         self.running: bool = True
         self.audio_queue: Queue[Optional[bytes]] = Queue()

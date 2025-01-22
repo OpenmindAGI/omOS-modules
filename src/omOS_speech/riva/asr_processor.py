@@ -1,20 +1,18 @@
-import logging
-import json
-import time
 import argparse
-from typing import Optional, Callable, Any
+import json
+import logging
+import time
+from typing import Any, Callable, Optional
 
 # riva is only available on Jetson devices
 try:
     from riva import client
-    from riva.client import (
-        ASRService,
-        StreamingRecognitionConfig,
-    )
+    from riva.client import ASRService, StreamingRecognitionConfig
 except ModuleNotFoundError:
     client = None
 
 from ..interfaces import ASRProcessorInterface
+
 
 class ASRProcessor(ASRProcessorInterface):
     """
@@ -27,7 +25,10 @@ class ASRProcessor(ASRProcessorInterface):
     callback : Optional[Callable], optional
         Callback function to receive ASR results (default: None)
     """
-    def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable] = None):
+
+    def __init__(
+        self, model_args: argparse.Namespace, callback: Optional[Callable] = None
+    ):
         self.model: Optional[ASRService] = None
         self.model_config: Optional[StreamingRecognitionConfig] = None
         self.args = model_args
@@ -48,7 +49,9 @@ class ASRProcessor(ASRProcessorInterface):
         the recognition parameters including audio encoding, language,
         punctuation, and various thresholds.
         """
-        auth = client.Auth(self.args.ssl_cert, self.args.use_ssl, self.args.server, self.args.metadata)
+        auth = client.Auth(
+            self.args.ssl_cert, self.args.use_ssl, self.args.server, self.args.metadata
+        )
         self.model = client.ASRService(auth)
         self.model_config = client.StreamingRecognitionConfig(
             config=client.RecognitionConfig(
@@ -71,11 +74,10 @@ class ASRProcessor(ASRProcessorInterface):
             self.args.stop_history,
             self.args.stop_history_eou,
             self.args.stop_threshold,
-            self.args.stop_threshold_eou
+            self.args.stop_threshold_eou,
         )
         client.add_custom_configuration_to_config(
-            self.model_config,
-            self.args.custom_configuration
+            self.model_config, self.args.custom_configuration
         )
 
     def on_audio(self, audio: bytes) -> bytes:
@@ -130,7 +132,7 @@ class ASRProcessor(ASRProcessorInterface):
         """
         responses = self.model.streaming_response_generator(
             audio_chunks=self._yield_audio_chunks(audio_source),
-            streaming_config=self.model_config
+            streaming_config=self.model_config,
         )
 
         for response in responses:

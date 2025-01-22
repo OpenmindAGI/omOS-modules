@@ -2,15 +2,16 @@
 # A partial of code comes from https://github.com/nvidia-riva/python-clients/blob/main/riva/client/audio_io.py
 
 import logging
-import pyaudio
 import queue
 import threading
+from typing import Any, Callable, Generator, Optional, Tuple, Union
 
-from typing import Optional, Callable, Generator, Tuple, Union, Any
+import pyaudio
 
 logger = logging.getLogger(__name__)
 
-class AudioInputStream():
+
+class AudioInputStream:
     """
     A class for capturing and managing real-time audio input from a microphone.
 
@@ -31,6 +32,7 @@ class AudioInputStream():
     audio_data_callback : Optional[Callable], optional
         A callback function that receives audio data chunks (default: None)
     """
+
     def __init__(
         self,
         rate: int = 16000,
@@ -64,7 +66,7 @@ class AudioInputStream():
         self.running: bool = True
 
     def on_tts_state_change(self, is_active: bool):
-       """
+        """
         Updates the TTS active state to control audio capture behavior.
 
         When TTS is active, audio capture is temporarily suspended to prevent
@@ -75,11 +77,11 @@ class AudioInputStream():
         is_active : bool
             True if TTS is currently playing, False otherwise
         """
-       with self._lock:
+        with self._lock:
             self._is_tts_active = is_active
             logger.info(f"TTS active state changed to: {is_active}")
 
-    def start(self) -> 'AudioInputStream':
+    def start(self) -> "AudioInputStream":
         """
         Initializes and starts the audio capture stream.
 
@@ -105,14 +107,18 @@ class AudioInputStream():
         if self._device is None:
             try:
                 default_info = self._audio_interface.get_default_input_device_info()
-                self._device = default_info['index']
-                logger.info(f"Default input device: {default_info['name']} ({self._device})")
+                self._device = default_info["index"]
+                logger.info(
+                    f"Default input device: {default_info['name']} ({self._device})"
+                )
             except Exception as e:
                 logger.error(f"Error getting default input device: {e}")
                 self._device = None
         else:
             device_info = self._audio_interface.get_device_info_by_index(self._device)
-            logger.info(f"Selected input device: {device_info['name']} ({self._device})")
+            logger.info(
+                f"Selected input device: {device_info['name']} ({self._device})"
+            )
 
         try:
             self._audio_stream = self._audio_interface.open(
@@ -144,14 +150,13 @@ class AudioInputStream():
         The thread runs as a daemon to ensure it terminates when the main program exits.
         """
         if self._audio_thread is None or not self._audio_thread.is_alive():
-            self._audio_thread = threading.Thread(
-                target=self.on_audio,
-                daemon=True
-            )
+            self._audio_thread = threading.Thread(target=self.on_audio, daemon=True)
             self._audio_thread.start()
             logger.info("Started audio processing thread")
 
-    def _fill_buffer(self, in_data: bytes, frame_count: int, time_info: dict, status_flags: int) -> Tuple[None, int]:
+    def _fill_buffer(
+        self, in_data: bytes, frame_count: int, time_info: dict, status_flags: int
+    ) -> Tuple[None, int]:
         """
         Callback function for the PyAudio stream to fill the audio buffer.
 
@@ -214,9 +219,9 @@ class AudioInputStream():
                     break
 
             if self.audio_data_callback:
-                self.audio_data_callback(b''.join(data))
+                self.audio_data_callback(b"".join(data))
 
-            yield b''.join(data)
+            yield b"".join(data)
 
     def on_audio(self):
         """Audio processing loop"""

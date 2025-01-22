@@ -1,15 +1,16 @@
-import logging
-import cv2
-import base64
-import numpy as np
 import argparse
-from typing import Optional, Callable, Any
+import base64
+import logging
+from typing import Callable, Optional
+
+import cv2
+import numpy as np
 
 # nano_llm is only available on the Jetson devices
 try:
     import nano_llm
+    from jetson_utils import cudaAllocMapped, cudaConvertColor, cudaFromNumpy
     from nano_llm.plugins import VideoOutput
-    from jetson_utils import cudaFromNumpy, cudaAllocMapped, cudaConvertColor
 except ModuleNotFoundError:
     VideoOutput = None
     cudaFromNumpy = None
@@ -17,6 +18,7 @@ except ModuleNotFoundError:
     cudaConvertColor = None
 
 logger = logging.getLogger(__name__)
+
 
 class VideoStreamInput:
     """
@@ -30,6 +32,7 @@ class VideoStreamInput:
     The class supports real-time video processing pipelines with custom frame callbacks
     and includes error handling for various failure modes.
     """
+
     def __init__(self):
         self.video_output: nano_llm.plugins.VideoOutput = None
         self.running: bool = True
@@ -53,7 +56,7 @@ class VideoStreamInput:
             If frame processing fails at any stage
         """
         try:
-           # Decode base64 image
+            # Decode base64 image
             img_bytes = base64.b64decode(message)
             img_np = np.frombuffer(img_bytes, dtype=np.uint8)
             frame = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
@@ -67,9 +70,7 @@ class VideoStreamInput:
 
             # Allocate CUDA memory for RGB format
             rgb_cuda = cudaAllocMapped(
-                width=bgr_cuda.width,
-                height=bgr_cuda.height,
-                format='rgb8'
+                width=bgr_cuda.width, height=bgr_cuda.height, format="rgb8"
             )
 
             # Convert from BGR to RGB
@@ -85,7 +86,12 @@ class VideoStreamInput:
         except Exception as e:
             logger.error(f"Error processing WebSocket message: {e}")
 
-    def setup_video_stream(self, args: argparse.Namespace, frame_callback: Optional[Callable], cuda_stream: int = 0):
+    def setup_video_stream(
+        self,
+        args: argparse.Namespace,
+        frame_callback: Optional[Callable],
+        cuda_stream: int = 0,
+    ):
         """
         Initialize video streaming components and callbacks.
 
@@ -120,7 +126,9 @@ class VideoStreamInput:
 
         return self, self.video_output
 
-    def register_frame_callback(self, frame_callback: Optional[Callable], threaded: bool = False):
+    def register_frame_callback(
+        self, frame_callback: Optional[Callable], threaded: bool = False
+    ):
         """
         Register a callback function for frame processing.
 

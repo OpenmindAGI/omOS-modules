@@ -1,12 +1,13 @@
 import logging
+import threading
+from queue import Empty, Queue
+from typing import Callable, Optional, Union
+
 import websockets
 from websockets.sync.client import connect
-import threading
-from queue import Queue, Empty
-
-from typing import Optional, Callable, Union
 
 logger = logging.getLogger(__name__)
+
 
 class Client:
     """
@@ -21,6 +22,7 @@ class Client:
     url : str, optional
         The WebSocket server URL to connect to, by default "ws://localhost:6789"
     """
+
     def __init__(self, url: str = "ws://localhost:6789"):
         self.url = url
         self.running: bool = True
@@ -42,9 +44,7 @@ class Client:
             try:
                 message = self.websocket.recv()
                 formatted_msg = self.format_message(message)
-                logger.debug(
-                    f"Received WS Message: {formatted_msg}"
-                )
+                logger.debug(f"Received WS Message: {formatted_msg}")
                 if self.message_callback:
                     self.message_callback(message)
             except websockets.ConnectionClosed:
@@ -98,11 +98,15 @@ class Client:
 
             # Start receiver and sender threads
             if not self.receiver_thread or not self.receiver_thread.is_alive():
-                self.receiver_thread = threading.Thread(target=self._receive_messages, daemon=True)
+                self.receiver_thread = threading.Thread(
+                    target=self._receive_messages, daemon=True
+                )
                 self.receiver_thread.start()
 
             if not self.sender_thread or not self.sender_thread.is_alive():
-                self.sender_thread = threading.Thread(target=self._send_messages, daemon=True)
+                self.sender_thread = threading.Thread(
+                    target=self._send_messages, daemon=True
+                )
                 self.sender_thread.start()
 
             logger.info(f"Connected to {self.url}")
@@ -211,7 +215,7 @@ class Client:
             try:
                 self.websocket.close()
                 logger.info("WebSocket connection closed")
-            except:
+            except Exception as _:
                 pass
 
         try:

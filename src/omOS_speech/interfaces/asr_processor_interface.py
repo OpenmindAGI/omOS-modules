@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from .audio_stream_input_interface import AudioStreamInputInterface
 
+
 class ASRProcessorInterface(ABC):
     """
     Interface defining the contract for ASR processor implementations.

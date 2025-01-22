@@ -2,9 +2,9 @@
 # https://modal.com/docs/guide/ex/vllm_inference
 # This file comes from https://github.com/dusty-nv/NanoLLM/blob/main/nano_llm/utils/prompts.py
 
-import os
 import json
 import logging
+import os
 
 DefaultChatPrompts = [
     "What is the weather forecast today?",
@@ -32,6 +32,7 @@ DefaultCompletionPrompts = [
     "A recipe for making tabouli is",
 ]
 
+
 # This function comes from https://github.com/dusty-nv/clip_trt/blob/main/clip_trt/utils/prompts.py
 def load_prompts(prompts, concat=False):
     """
@@ -49,26 +50,25 @@ def load_prompts(prompts, concat=False):
     for prompt in prompts:
         ext = os.path.splitext(prompt)[1]
 
-        if ext == '.json':
+        if ext == ".json":
             logging.info(f"loading prompts from {prompt}")
             with open(prompt) as file:
                 json_prompts = json.load(file)
             for json_prompt in json_prompts:
                 if isinstance(json_prompt, dict):
-                    prompt_list.append(json_prompt['text'])
+                    prompt_list.append(json_prompt["text"])
                 elif isinstance(json_prompt, str):
                     prompt_list.append(json_prompt)
                 else:
                     raise TypeError(f"{type(json_prompt)}")
-        elif ext == '.txt':
+        elif ext == ".txt":
             with open(prompt) as file:
                 prompt_list.append(file.read().strip())
         else:
             prompt_list.append(prompt)
 
     if concat:
-        if concat == True:
-            concat = ' '
+        concat = " "
         prompt_list = concat.join(prompt_list)
 
     return prompt_list

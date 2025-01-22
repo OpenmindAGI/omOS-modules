@@ -1,6 +1,7 @@
 import threading
 from typing import Any
 
+
 def singleton(cls):
     """
     A thread-safe singleton decorator that ensures only one instance of a class exists.

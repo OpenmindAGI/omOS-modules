@@ -5,9 +5,8 @@ This module provides integration with the VILA (Vision Language) model
 for real-time video analysis and description generation.
 """
 
-from .vila_processor import VILAProcessor
-from .video_stream_input import VideoStreamInput
 from .args import VILAArgParser
-from .__main__ import main
+from .video_stream_input import VideoStreamInput
+from .vila_processor import VILAProcessor
 
-__all__ = ["VILAProcessor", "VILAArgParser", "VideoStreamInput", "main"]
+__all__ = ["VILAProcessor", "VILAArgParser", "VideoStreamInput"]
