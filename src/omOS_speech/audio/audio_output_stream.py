@@ -1,17 +1,19 @@
+import argparse
+import base64
+import json
 import logging
+import threading
+import time
+from queue import Empty, Queue
+from typing import Callable, Optional
+
 import pyaudio
 import requests
-import json
-import base64
-import threading
-import argparse
-import time
-from queue import Queue, Empty
-from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
-class AudioOutputStream():
+
+class AudioOutputStream:
     """
     A class for managing audio output and text-to-speech (TTS) conversion.
 
@@ -28,7 +30,14 @@ class AudioOutputStream():
         A callback function to receive TTS state changes (active/inactive)
         (default: None)
     """
-    def __init__(self, url: str, rate: int = 8000, device: int = None, tts_state_callback: Optional[Callable] = None):
+
+    def __init__(
+        self,
+        url: str,
+        rate: int = 8000,
+        device: int = None,
+        tts_state_callback: Optional[Callable] = None,
+    ):
         self._url = url
         self._rate = rate
         self._device = device
@@ -57,9 +66,11 @@ class AudioOutputStream():
                 for i in range(device_count):
                     device_info = self._audio_interface.get_device_info_by_index(i)
                     logger.info(f"Device {i}: {device_info['name']}")
-                    logger.info(f"Max Output Channels: {device_info['maxOutputChannels']}")
+                    logger.info(
+                        f"Max Output Channels: {device_info['maxOutputChannels']}"
+                    )
 
-                    if device_info['maxOutputChannels'] > 0:
+                    if device_info["maxOutputChannels"] > 0:
                         output_device = device_info
                         self._device = i
                         break
@@ -67,9 +78,13 @@ class AudioOutputStream():
                 if output_device is None:
                     raise ValueError("No output device found")
             else:
-                device_info = self._audio_interface.get_device_info_by_index(self._device)
-                logger.info(f"Selected output device: {device_info['name']} ({self._device})")
-                if device_info['maxOutputChannels'] == 0:
+                device_info = self._audio_interface.get_device_info_by_index(
+                    self._device
+                )
+                logger.info(
+                    f"Selected output device: {device_info['name']} ({self._device})"
+                )
+                if device_info["maxOutputChannels"] == 0:
                     raise ValueError("Selected output device has no output channels")
                 else:
                     output_device = device_info
@@ -79,10 +94,12 @@ class AudioOutputStream():
             self.stream = self._audio_interface.open(
                 output_device_index=self._device,
                 format=pyaudio.paInt16,
-                channels=min(2, output_device['maxOutputChannels']),  # Use up to 2 channels
+                channels=min(
+                    2, output_device["maxOutputChannels"]
+                ),  # Use up to 2 channels
                 rate=self._rate,
                 output=True,
-                frames_per_buffer=1024
+                frames_per_buffer=1024,
             )
             logger.info("Successfully opened audio stream")
 
@@ -129,7 +146,7 @@ class AudioOutputStream():
                     self._url,
                     data=json.dumps({"text": tts_input}),
                     headers={"Content-Type": "application/json"},
-                    timeout=(5, 15)
+                    timeout=(5, 15),
                 )
                 logger.info(f"Received TTS response: {response.status_code}")
                 if response.status_code == 200:
@@ -150,7 +167,9 @@ class AudioOutputStream():
 
                         logger.info(f"Processed TTS request: {tts_input}")
                 else:
-                    logger.error(f"Error processing TTS request: {response.status_code}")
+                    logger.error(
+                        f"Error processing TTS request: {response.status_code}"
+                    )
             except Empty:
                 continue
             except Exception as e:
@@ -186,11 +205,13 @@ class AudioOutputStream():
         Allows users to input text for TTS conversion until 'quit' is entered
         or KeyboardInterrupt is received.
         """
-        logger.info("Running interactive audio output stream. Please enter text for TTS conversion.")
+        logger.info(
+            "Running interactive audio output stream. Please enter text for TTS conversion."
+        )
         try:
             while self.running:
                 user_input = input()
-                if user_input.lower() == 'quit':
+                if user_input.lower() == "quit":
                     break
                 self.add(user_input)
         except KeyboardInterrupt:
@@ -204,6 +225,7 @@ class AudioOutputStream():
         """
         self.running = False
 
+
 def main():
     """
     Main function for running the audio output stream.
@@ -211,15 +233,20 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tts-url", type=str, required=True, help="URL for the TTS service")
+    parser.add_argument(
+        "--tts-url", type=str, required=True, help="URL for the TTS service"
+    )
     parser.add_argument("--device", type=int, default=None, help="Output device index")
-    parser.add_argument("--rate", type=int, default=8000, help="Audio output rate in Hz")
+    parser.add_argument(
+        "--rate", type=int, default=8000, help="Audio output rate in Hz"
+    )
     args = parser.parse_args()
 
     audio_output = AudioOutputStream(args.tts_url, device=args.device, rate=args.rate)
     audio_output.start()
     audio_output.run_interactive()
     audio_output.stop()
+
 
 if __name__ == "__main__":
     main()

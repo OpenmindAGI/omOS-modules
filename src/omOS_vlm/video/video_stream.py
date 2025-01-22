@@ -1,11 +1,13 @@
-import logging
-import cv2
-import time
 import base64
+import logging
 import platform
 import threading
+import time
+from typing import Callable, Optional
+
+import cv2
+
 from .video_utils import enumerate_video_devices
-from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
 import argparse
-from typing import Optional, Any, Callable, Tuple
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Optional, Tuple
+
 
 class VideoStreamInputInterface(ABC):
     """Abstract base class for video stream input handlers."""
@@ -24,7 +25,12 @@ class VideoStreamInputInterface(ABC):
         pass
 
     @abstractmethod
-    def setup_video_stream(self, args: argparse.Namespace, frame_callback: Optional[Callable], cuda_stream: int = 0) -> Tuple[Any, Any]:
+    def setup_video_stream(
+        self,
+        args: argparse.Namespace,
+        frame_callback: Optional[Callable],
+        cuda_stream: int = 0,
+    ) -> Tuple[Any, Any]:
         """Set up the video stream with specified configuration.
 
         Args:
@@ -38,7 +44,9 @@ class VideoStreamInputInterface(ABC):
         pass
 
     @abstractmethod
-    def register_frame_callback(self, frame_callback: Optional[Callable], threaded: bool = False):
+    def register_frame_callback(
+        self, frame_callback: Optional[Callable], threaded: bool = False
+    ):
         """Register a callback function for processing video frames.
 
         Args:

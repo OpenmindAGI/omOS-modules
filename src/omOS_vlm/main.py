@@ -1,14 +1,14 @@
-import logging
-import time
-import threading
 import argparse
-
-from typing import Optional, Any
+import logging
+import threading
+import time
+from typing import Any, Optional
 
 from omOS_utils import ws
-from .video import VideoStream
-from .processor import ConnectionProcessor
+
 from .config import ConfigManager
+from .processor import ConnectionProcessor
+from .video import VideoStream
 
 logger = logging.getLogger(__name__)
 

@@ -2,13 +2,15 @@
 # A partial of code comes from https://github.com/nvidia-riva/python-clients/blob/main/riva/client/audio_io.py
 
 import logging
-import pyaudio
 import queue
-from typing import Optional, Callable, Any, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
+import pyaudio
 
 logger = logging.getLogger(__name__)
 
-class AudioDeviceInput():
+
+class AudioDeviceInput:
     """
     A class for capturing real-time audio input from a microphone device.
 
@@ -24,12 +26,13 @@ class AudioDeviceInput():
     callback : Optional[Callable], optional
         A callback function to receive audio data chunks (default: None)
     """
+
     def __init__(
         self,
         rate: int = 16000,
         chunk: int = 4048,
         device: Optional[Union[str, int, float, Any]] = None,
-        callback: Optional[Callable] = None
+        callback: Optional[Callable] = None,
     ):
         self._rate = rate
         self._chunk = chunk
@@ -42,7 +45,7 @@ class AudioDeviceInput():
         self._audio_interface: Optional[pyaudio.PyAudio] = None
         self._audio_stream: Optional[pyaudio.Stream] = None
 
-    def setup_audio_devices(self) -> 'AudioDeviceInput':
+    def setup_audio_devices(self) -> "AudioDeviceInput":
         """
         Initialize and set up the audio capture devices.
 
@@ -65,13 +68,15 @@ class AudioDeviceInput():
         if self._device is None:
             try:
                 default_info = self._audio_interface.get_default_input_device_info()
-                self._device = default_info['index']
+                self._device = default_info["index"]
             except Exception as e:
                 logger.error(f"Error getting default input device: {e}")
                 self._device = None
         else:
             device_info = self._audio_interface.get_device_info_by_index(self._device)
-            logger.info(f"Selected input device: {device_info['name']} ({self._device})")
+            logger.info(
+                f"Selected input device: {device_info['name']} ({self._device})"
+            )
 
         try:
             self._audio_stream = self._audio_interface.open(
@@ -112,7 +117,13 @@ class AudioDeviceInput():
         self._buff.put(None)
         logger.info("Stopped audio stream")
 
-    def _fill_buffer(self, in_data: bytes, frame_count: int, time_info: Dict[str, Any], status_flags: int) -> Tuple[None, int]:
+    def _fill_buffer(
+        self,
+        in_data: bytes,
+        frame_count: int,
+        time_info: Dict[str, Any],
+        status_flags: int,
+    ) -> Tuple[None, int]:
         """
         Callback function for the PyAudio stream to fill the audio buffer.
 
@@ -163,4 +174,4 @@ class AudioDeviceInput():
                 except queue.Empty:
                     break
 
-            return b''.join(data)
+            return b"".join(data)

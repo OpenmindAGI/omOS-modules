@@ -1,6 +1,6 @@
 import argparse
-from typing import Optional, Any
 import logging
+from typing import Any, Optional
 
 from omOS_utils import singleton
 

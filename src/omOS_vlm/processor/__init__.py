@@ -1,5 +1,3 @@
 from .connection_processor import ConnectionProcessor
 
-__all__ = [
-  "ConnectionProcessor"
-]
+__all__ = ["ConnectionProcessor"]

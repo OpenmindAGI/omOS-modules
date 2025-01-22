@@ -1,24 +1,30 @@
-import logging
 import argparse
+import logging
 import threading
 import time
 from typing import Optional
 
-from omOS_utils import ws, http
+from omOS_utils import http, ws
 
 # Audio input from microphone
 from .audio import AudioInputStream
 
-# Riva ASR and TTS
-from .riva import (
-    ASRProcessor, TTSProcessor, AudioDeviceInput, AudioStreamInput,
-    add_asr_config_argparse_parameters, add_tts_argparse_parameters, add_connection_argparse_parameters
-)
-
 # Multithreading
 from .processor import ConnectionProcessor
 
+# Riva ASR and TTS
+from .riva import (
+    ASRProcessor,
+    AudioDeviceInput,
+    AudioStreamInput,
+    TTSProcessor,
+    add_asr_config_argparse_parameters,
+    add_connection_argparse_parameters,
+    add_tts_argparse_parameters,
+)
+
 logger = logging.getLogger(__name__)
+
 
 class Application:
     """
@@ -40,6 +46,7 @@ class Application:
         - Logging level
         - ASR and TTS model parameters
     """
+
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.ws_server: Optional[ws.Server] = None
@@ -57,7 +64,9 @@ class Application:
         # Set logging level in the lower level modules
         logging.basicConfig(level=getattr(logging, self.args.log_level.upper()))
         for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).setLevel(getattr(logging, self.args.log_level.upper()))
+            logging.getLogger(name).setLevel(
+                getattr(logging, self.args.log_level.upper())
+            )
 
     @staticmethod
     def parse_arguments() -> argparse.Namespace:
@@ -74,19 +83,38 @@ class Application:
             - Logging configuration
         """
         parser = argparse.ArgumentParser()
-        parser.add_argument("--ws-host", type=str, default="localhost", help="WebSocket server host")
+        parser.add_argument(
+            "--ws-host", type=str, default="localhost", help="WebSocket server host"
+        )
         parser.add_argument("--ws-port", type=int, help="WebSocket server port")
-        parser.add_argument("--http-host", type=str, default="localhost", help="HTTP server host")
+        parser.add_argument(
+            "--http-host", type=str, default="localhost", help="HTTP server host"
+        )
         parser.add_argument("--http-port", type=int, help="HTTP server port")
-        parser.add_argument("--server-mode", default=False, action="store_true", help="Run in server mode")
-        parser.add_argument("--remote-url", type=str, help="Remote webSocket URL server for audio stream input")
-        parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level")
+        parser.add_argument(
+            "--server-mode",
+            default=False,
+            action="store_true",
+            help="Run in server mode",
+        )
+        parser.add_argument(
+            "--remote-url",
+            type=str,
+            help="Remote webSocket URL server for audio stream input",
+        )
+        parser.add_argument(
+            "--log-level",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the logging level",
+        )
 
         # nvidia riva
-        ## ASR
+        # ASR
         parser = add_asr_config_argparse_parameters(parser, profanity_filter=True)
         parser = add_connection_argparse_parameters(parser)
-        ## TTS
+        # TTS
         parser = add_tts_argparse_parameters(parser)
         return parser.parse_args()
 
@@ -102,7 +130,9 @@ class Application:
         self.ws_client = ws.Client(url=self.args.remote_url)
         self.ws_client.start()
 
-        self.audio_input_streamer = AudioInputStream(audio_data_callback=self.ws_client.send_message)
+        self.audio_input_streamer = AudioInputStream(
+            audio_data_callback=self.ws_client.send_message
+        )
         self.audio_input_streamer.start()
 
     def setup_asr_processing(self):
@@ -116,18 +146,22 @@ class Application:
 
         # Create thread processor
         if self.args.server_mode:
-            self.connection_processor = ConnectionProcessor(self.args, ASRProcessor, AudioStreamInput)
+            self.connection_processor = ConnectionProcessor(
+                self.args, ASRProcessor, AudioStreamInput
+            )
             self.connection_processor.set_server(self.ws_server)
         else:
             # Use the default audio input
-            self.asr_processor = ASRProcessor(self.args, self.ws_server.handle_global_response)
+            self.asr_processor = ASRProcessor(
+                self.args, self.ws_server.handle_global_response
+            )
             self.audio_source = AudioDeviceInput()
             self.audio_source.setup_audio_devices()
 
             asr_thread = threading.Thread(
                 target=self.asr_processor.process_audio,
                 args=(self.audio_source,),
-                daemon=True
+                daemon=True,
             )
             asr_thread.start()
 
@@ -142,7 +176,9 @@ class Application:
         """
         self.tts_processor = TTSProcessor(self.args)
 
-        self.http_server = http.Server(host=self.args.http_host, port=self.args.http_port)
+        self.http_server = http.Server(
+            host=self.args.http_host, port=self.args.http_port
+        )
         self.http_server.register_message_callback(self.tts_processor.process_tts)
         self.http_server.start()
 
@@ -167,9 +203,9 @@ class Application:
             self.setup_audio_streaming()
         else:
             # hardcode the model to Riva
-            logger.info(f"Starting ARS processing with model: Riva")
+            logger.info("Starting ARS processing with model: Riva")
             self.setup_asr_processing()
-            logger.info(f"Started TTS processing with model: Riva")
+            logger.info("Started TTS processing with model: Riva")
             self.setup_tts_processing()
 
         self.running = True
@@ -211,6 +247,7 @@ class Application:
         if self.tts_processor:
             self.tts_processor.stop()
 
+
 def main():
     """
     Main entry point for the application.
@@ -218,6 +255,7 @@ def main():
     args = Application.parse_arguments()
     app = Application(args)
     app.start()
+
 
 if __name__ == "__main__":
     main()

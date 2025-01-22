@@ -1,5 +1,3 @@
-from .server import Server, JsonResponse, JsonDict
+from .server import JsonDict, JsonResponse, Server
 
-__all__ = [
-  'Server', 'JsonResponse', 'JsonDict'
-]
+__all__ = ["Server", "JsonResponse", "JsonDict"]
