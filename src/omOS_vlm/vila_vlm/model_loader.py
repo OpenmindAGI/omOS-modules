@@ -17,6 +17,7 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger(__name__)
 
+
 @singleton
 class VILAModelLoader:
     """
@@ -27,6 +28,7 @@ class VILAModelLoader:
     args : argparse.Namespace
         Command line arguments for model configuration.
     """
+
     def __init__(self, args: argparse.Namespace):
         """
         Initialize the VILA model loader.
@@ -60,10 +62,10 @@ class VILAModelLoader:
             If model loading fails.
         """
         try:
-            model = llava.load("Efficient-Large-Model/VILA1.5-3B")
+            model = llava.load(self.args.vila_model_path)
             model.to("cuda")
             clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
-            assert(model)
+            assert model
             return model
         except Exception as e:
             raise Exception("Failed to load VILA model") from e

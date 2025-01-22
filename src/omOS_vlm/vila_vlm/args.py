@@ -33,6 +33,12 @@ class VILAArgParser(argparse.ArgumentParser):
                 default=5,
                 help="Number of frames to process in a batch",
             )
+            self.add_argument(
+                "--vila-model-path",
+                type=str,
+                default="/app/Efficient-Large-Model/VILA1.5-3B",
+                help="Path to the VILA model",
+            )
 
         # Standalone mode options
         if "standalone" in extras:
