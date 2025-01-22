@@ -1,15 +1,17 @@
 # The connection processor isused to handle the multi-threading of
 # the audio stream and the ASR processor.
 
+import argparse
 import logging
 import threading
-import argparse
 from typing import Dict, Optional
+
 from omOS_utils import ws
 
-from ..interfaces import AudioStreamInputInterface, ASRProcessorInterface
+from ..interfaces import ASRProcessorInterface, AudioStreamInputInterface
 
 logger = logging.getLogger(__name__)
+
 
 class ConnectionProcessor:
     """
@@ -27,7 +29,13 @@ class ConnectionProcessor:
     audio_stream_input_class : type
         The class to use for creating audio stream input instances
     """
-    def __init__(self, arg: argparse.Namespace, asr_processor_class: type, audio_stream_input_class: type):
+
+    def __init__(
+        self,
+        arg: argparse.Namespace,
+        asr_processor_class: type,
+        audio_stream_input_class: type,
+    ):
         self.args = arg
         self.asr_processor_class = asr_processor_class
         self.audio_stream_input_class = audio_stream_input_class
@@ -47,7 +55,9 @@ class ConnectionProcessor:
         """
         self.ws_server = ws_server
 
-        self.ws_server.register_connection_callback(lambda event, conn_id: self.handle_connection_event(event, conn_id))
+        self.ws_server.register_connection_callback(
+            lambda event, conn_id: self.handle_connection_event(event, conn_id)
+        )
 
     def handle_connection_event(self, event: str, connection_id: str):
         """
@@ -60,9 +70,9 @@ class ConnectionProcessor:
         connection_id : str
             The unique identifier for the connection
         """
-        if event == 'connect':
+        if event == "connect":
             self.handle_new_connection(connection_id)
-        elif event == 'disconnect':
+        elif event == "disconnect":
             self.handle_connection_closed(connection_id)
 
     def handle_new_connection(self, connection_id: str):
@@ -79,7 +89,9 @@ class ConnectionProcessor:
         """
         asr_processor = self.asr_processor_class(
             self.args,
-            callback=lambda message: self.ws_server.handle_response(connection_id, message)
+            callback=lambda message: self.ws_server.handle_response(
+                connection_id, message
+            ),
         )
 
         self.asr_processors[connection_id] = asr_processor
@@ -92,7 +104,9 @@ class ConnectionProcessor:
         # Register message callback for audio stream
         self.ws_server.register_message_callback(
             connection_id,
-            lambda conn_id, message: audio_source.handle_ws_incoming_message(conn_id, message)
+            lambda conn_id, message: audio_source.handle_ws_incoming_message(
+                conn_id, message
+            ),
         )
 
         processing_thread = threading.Thread(

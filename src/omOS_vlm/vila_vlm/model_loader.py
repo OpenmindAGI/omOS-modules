@@ -1,6 +1,6 @@
 import argparse
-from typing import Optional, Any
 import logging
+from typing import Any, Optional
 
 from omOS_utils import singleton
 
@@ -17,6 +17,7 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger(__name__)
 
+
 @singleton
 class VILAModelLoader:
     """
@@ -27,6 +28,7 @@ class VILAModelLoader:
     args : argparse.Namespace
         Command line arguments for model configuration.
     """
+
     def __init__(self, args: argparse.Namespace):
         """
         Initialize the VILA model loader.
@@ -63,7 +65,7 @@ class VILAModelLoader:
             model = llava.load("Efficient-Large-Model/VILA1.5-3B")
             model.to("cuda")
             clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
-            assert(model)
+            assert model
             return model
         except Exception as e:
             raise Exception("Failed to load VILA model") from e

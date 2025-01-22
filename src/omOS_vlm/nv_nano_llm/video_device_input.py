@@ -1,10 +1,10 @@
+import argparse
 import logging
 from typing import Any, Callable
-import argparse
 
 # nano_llm is only available on the Jetson devices
 try:
-    from nano_llm.plugins import VideoSource, VideoOutput
+    from nano_llm.plugins import VideoOutput, VideoSource
 except ModuleNotFoundError:
     VideoSource = None
     VideoOutput = None
@@ -12,6 +12,7 @@ except ModuleNotFoundError:
 from ..video import enumerate_video_devices
 
 logger = logging.getLogger(__name__)
+
 
 class VideoDeviceInput:
     """
@@ -21,11 +22,17 @@ class VideoDeviceInput:
     and output streams. It's specifically designed to work with NVIDIA Jetson devices and
     requires the nano_llm package for full functionality.
     """
+
     def __init__(self):
         self.video_source: Any = None
         self.video_output: Any = None
 
-    def setup_video_devices(self, args: argparse.Namespace, callback: Callable[[bytes], None], cuda_stream: int = 0):
+    def setup_video_devices(
+        self,
+        args: argparse.Namespace,
+        callback: Callable[[bytes], None],
+        cuda_stream: int = 0,
+    ):
         """
         Set up video input and output devices with specified parameters.
 
@@ -57,7 +64,7 @@ class VideoDeviceInput:
             If video device initialization fails
         """
         devices = enumerate_video_devices()
-        camindex = '/dev/video' + str(devices[0][0]) if devices else '/dev/video0'
+        camindex = "/dev/video" + str(devices[0][0]) if devices else "/dev/video0"
         logger.info(f"Using camera: {camindex}")
 
         # Initialize video source and output

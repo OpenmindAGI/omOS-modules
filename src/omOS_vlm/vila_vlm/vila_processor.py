@@ -1,13 +1,13 @@
-import logging
 import argparse
-from typing import Optional, Any, Callable, List
 import json
-import time
-import tempfile
+import logging
 import os
-import base64
-import torch
+import tempfile
+import time
 from io import BytesIO
+from typing import Any, Callable, List, Optional
+
+import torch
 from PIL import Image as PILImage
 
 from .model_loader import VILAModelLoader

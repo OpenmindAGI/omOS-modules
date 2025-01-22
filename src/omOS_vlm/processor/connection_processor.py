@@ -1,14 +1,16 @@
 # The connection processor isused to handle the vlm stream and processor
 
+import argparse
 import logging
 import threading
-import argparse
 from typing import Dict, Optional
+
 from omOS_utils import ws
 
-from ..interfaces import VLMProcessorInterface, VideoStreamInputInterface
+from ..interfaces import VideoStreamInputInterface, VLMProcessorInterface
 
 logger = logging.getLogger(__name__)
+
 
 class ConnectionProcessor:
     """
@@ -27,7 +29,13 @@ class ConnectionProcessor:
     video_stream_input_class : type
         Class type for creating video stream input instances
     """
-    def __init__(self, arg: argparse.Namespace, vlm_processor_class: type, video_stream_input_class: type):
+
+    def __init__(
+        self,
+        arg: argparse.Namespace,
+        vlm_processor_class: type,
+        video_stream_input_class: type,
+    ):
         self.args = arg
         self.vlm_processor_class = vlm_processor_class
         self.video_stream_input_class = video_stream_input_class
@@ -47,7 +55,9 @@ class ConnectionProcessor:
         """
         self.ws_server = ws_server
 
-        self.ws_server.register_connection_callback(lambda event, conn_id: self.handle_connection_event(event, conn_id))
+        self.ws_server.register_connection_callback(
+            lambda event, conn_id: self.handle_connection_event(event, conn_id)
+        )
 
     def handle_connection_event(self, event: str, connection_id: str):
         """
@@ -60,9 +70,9 @@ class ConnectionProcessor:
         connection_id : str
             Unique identifier for the connection
         """
-        if event == 'connect':
+        if event == "connect":
             self.handle_new_connection(connection_id)
-        elif event == 'disconnect':
+        elif event == "disconnect":
             self.handle_connection_closed(connection_id)
 
     def handle_new_connection(self, connection_id: str):
@@ -81,34 +91,37 @@ class ConnectionProcessor:
         """
         vlm_processor = self.vlm_processor_class(
             self.args,
-            callback=lambda message: self.ws_server.handle_response(connection_id, message)
+            callback=lambda message: self.ws_server.handle_response(
+                connection_id, message
+            ),
         )
 
         self.vlm_processors[connection_id] = vlm_processor
 
         # Create video stream source for this connection
         video_source = self.video_stream_input_class()
-        video_source.setup_video_stream(
-            self.args,
-            vlm_processor.on_video
-        )
+        video_source.setup_video_stream(self.args, vlm_processor.on_video)
         self.video_sources[connection_id] = video_source
 
         # Register message callback for video stream
         self.ws_server.register_message_callback(
             connection_id,
-            lambda conn_id, message: video_source.handle_ws_incoming_message(conn_id, message)
+            lambda conn_id, message: video_source.handle_ws_incoming_message(
+                conn_id, message
+            ),
         )
 
         processing_thread = threading.Thread(
             target=vlm_processor.process_frames,
-            args=(None, video_source,),
+            args=(
+                None,
+                video_source,
+            ),
         )
         self.processing_threads[connection_id] = processing_thread
         processing_thread.start()
 
         logger.info(f"Started processing thread for connection {connection_id}")
-
 
     def handle_connection_closed(self, connection_id: str):
         """

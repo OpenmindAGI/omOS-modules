@@ -1,14 +1,14 @@
-import logging
-import json
 import argparse
-from typing import Optional, Any, Callable, Union
+import json
+import logging
+from typing import Any, Callable, Optional
 
 # nano_llm and jestson_utils are only available on Jetson devices
 try:
     import nano_llm
-    from nano_llm import NanoLLM, ChatHistory, remove_special_tokens
+    from jetson_utils import cudaFont, cudaMemcpy
+    from nano_llm import ChatHistory, NanoLLM, remove_special_tokens
     from nano_llm.utils import wrap_text
-    from jetson_utils import cudaMemcpy, cudaFont
 except ModuleNotFoundError:
     NanoLLM = None
     ChatHistory = None

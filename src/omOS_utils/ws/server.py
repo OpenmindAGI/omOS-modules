@@ -1,16 +1,18 @@
 import asyncio
 import logging
-from websockets.asyncio.server import serve
-from websockets import WebSocketClientProtocol, ConnectionClosed
-from websockets.exceptions import InvalidUpgrade, InvalidHandshake
-from queue import Empty, Queue
-import uuid
 import threading
-from typing import Dict, Callable, Optional, Any, Union
+import uuid
+from queue import Empty, Queue
+from typing import Any, Callable, Dict, Optional, Union
+
+from websockets import ConnectionClosed, WebSocketClientProtocol
+from websockets.asyncio.server import serve
+from websockets.exceptions import InvalidHandshake, InvalidUpgrade
 
 logger = logging.getLogger(__name__)
 
-logging.getLogger('websockets.server').setLevel(logging.WARNING)
+logging.getLogger("websockets.server").setLevel(logging.WARNING)
+
 
 class Server:
     """
@@ -27,6 +29,7 @@ class Server:
     port : int, optional
         The port number to listen on, by default 6789
     """
+
     def __init__(self, host: str = "localhost", port: int = 6789):
         self.host = host
         self.port = port
@@ -83,7 +86,7 @@ class Server:
             except ConnectionClosed:
                 pass
             except Exception as e:
-                logger.error(f'Error sending global message: {e}')
+                logger.error(f"Error sending global message: {e}")
                 pass
 
     async def process_connection_messages(self, connection_id: str):
@@ -107,10 +110,14 @@ class Server:
             except ConnectionClosed:
                 break
             except Exception as e:
-                logger.error(f'Error sending message to connection {connection_id}: {e}')
+                logger.error(
+                    f"Error sending message to connection {connection_id}: {e}"
+                )
                 break
 
-    async def receive_messages(self, websocket: WebSocketClientProtocol, connection_id: str):
+    async def receive_messages(
+        self, websocket: WebSocketClientProtocol, connection_id: str
+    ):
         """
         Handle incoming messages for a specific connection.
 
@@ -126,10 +133,12 @@ class Server:
                 if connection_id in self.message_callbacks:
                     self.message_callbacks[connection_id](connection_id, message)
         except ConnectionClosed:
-            logger.info(f'Connection closed: {connection_id}')
+            logger.info(f"Connection closed: {connection_id}")
             pass
         except Exception as e:
-            logger.error(f'Error receiving message from connection {connection_id}: {e}')
+            logger.error(
+                f"Error receiving message from connection {connection_id}: {e}"
+            )
 
     async def handle_connection(self, websocket: WebSocketClientProtocol):
         """
@@ -148,19 +157,26 @@ class Server:
             # Store connection and create message queue
             self.connections[connection_id] = websocket
             self.queues[connection_id] = Queue()
-            logger.info(f'New connection established: {connection_id}')
+            logger.info(f"New connection established: {connection_id}")
 
             # Notify about new connection if callback is registered
             if self.connection_callback:
-                self.connection_callback('connect', connection_id)
+                self.connection_callback("connect", connection_id)
 
             # Start tasks for sending and receiving messages
             send_global_task = asyncio.create_task(self.process_global_messages())
-            send_task = asyncio.create_task(self.process_connection_messages(connection_id))
-            receive_task = asyncio.create_task(self.receive_messages(websocket, connection_id))
+            send_task = asyncio.create_task(
+                self.process_connection_messages(connection_id)
+            )
+            receive_task = asyncio.create_task(
+                self.receive_messages(websocket, connection_id)
+            )
 
             try:
-                _, pending = await asyncio.wait([send_global_task, send_task, receive_task], return_when=asyncio.FIRST_COMPLETED)
+                _, pending = await asyncio.wait(
+                    [send_global_task, send_task, receive_task],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
 
                 for task in pending:
                     task.cancel()
@@ -174,19 +190,21 @@ class Server:
             except ConnectionClosed:
                 logger.info(f"Connection closed normally: {connection_id}")
             except Exception as e:
-                logger.error(f"Unexpected error in connection handler: {e}", exc_info=True)
+                logger.error(
+                    f"Unexpected error in connection handler: {e}", exc_info=True
+                )
 
         finally:
             # Notify about connection closure if callback is registered
             if self.connection_callback:
-                self.connection_callback('disconnect', connection_id)
+                self.connection_callback("disconnect", connection_id)
 
             # Clean up connection resources
             if connection_id in self.queues:
                 del self.queues[connection_id]
             if connection_id in self.connections:
                 del self.connections[connection_id]
-                logger.info(f'Connection closed: {connection_id}')
+                logger.info(f"Connection closed: {connection_id}")
 
     def handle_response(self, connection_id: str, msg: Union[str, bytes]):
         """

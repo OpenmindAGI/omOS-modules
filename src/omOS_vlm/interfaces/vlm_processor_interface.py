@@ -1,12 +1,17 @@
-from abc import ABC, abstractmethod
 import argparse
-from typing import Optional, Any, Callable
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Optional
+
 
 class VLMProcessorInterface(ABC):
     """Abstract base class for VLM (Vision Language Model) processors."""
 
     @abstractmethod
-    def __init__(self, model_args: argparse.Namespace, callback: Optional[Callable[[str], None]] = None):
+    def __init__(
+        self,
+        model_args: argparse.Namespace,
+        callback: Optional[Callable[[str], None]] = None,
+    ):
         """Initialize the VLM processor.
 
         Args:

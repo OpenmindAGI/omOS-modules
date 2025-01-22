@@ -6,11 +6,12 @@ from omOS_utils import singleton
 from .config import (
     MODEL_CONFIGS,
     MODEL_PARSERS,
-    VLM_PROCESSOR,
     VIDEO_DEVICE_INPUT,
     VIDEO_STREAM_INPUT,
-    T_Parser
+    VLM_PROCESSOR,
+    T_Parser,
 )
+
 
 @singleton
 class ConfigManager:
@@ -21,6 +22,7 @@ class ConfigManager:
     for different Vision Language Models. Handles model-specific configurations and
     provides access to model processors and video input components.
     """
+
     def __init__(self):
         self.model_configs: Dict[str, List[str]] = MODEL_CONFIGS
         self.model_parsers: Dict[str, type[T_Parser]] = MODEL_PARSERS
@@ -61,11 +63,15 @@ class ConfigManager:
             Argument parser for the model specified in command line arguments
         """
         temp_parser = argparse.ArgumentParser(add_help=False)
-        temp_parser.add_argument("--model-name", type=str, default='vila', help="VLM model path/identifier")
+        temp_parser.add_argument(
+            "--model-name", type=str, default="vila", help="VLM model path/identifier"
+        )
         temp_args, _ = temp_parser.parse_known_args()
 
         parser = self.get_parser_for_model(temp_args.model_name)
-        parser.add_argument("--model-name", type=str, default='vila', help="VLM model path/identifier")
+        parser.add_argument(
+            "--model-name", type=str, default="vila", help="VLM model path/identifier"
+        )
 
         return parser
 
@@ -85,7 +91,9 @@ class ConfigManager:
             If no model is selected or if current model has no VLM processor
         """
         if self.model_name not in VLM_PROCESSOR:
-            raise ValueError(f"Model '{self.model_name}' not found in model configurations")
+            raise ValueError(
+                f"Model '{self.model_name}' not found in model configurations"
+            )
         return VLM_PROCESSOR[self.model_name]
 
     @property
@@ -104,7 +112,9 @@ class ConfigManager:
             If no model is selected or if current model has no video device input
         """
         if self.model_name not in VIDEO_DEVICE_INPUT:
-            raise ValueError(f"Model '{self.model_name}' not found in model configurations")
+            raise ValueError(
+                f"Model '{self.model_name}' not found in model configurations"
+            )
         return VIDEO_DEVICE_INPUT[self.model_name]
 
     @property
@@ -123,5 +133,7 @@ class ConfigManager:
             If no model is selected or if current model has no video stream input
         """
         if self.model_name not in VIDEO_STREAM_INPUT:
-            raise ValueError(f"Model '{self.model_name}' not found in model configurations")
+            raise ValueError(
+                f"Model '{self.model_name}' not found in model configurations"
+            )
         return VIDEO_STREAM_INPUT[self.model_name]

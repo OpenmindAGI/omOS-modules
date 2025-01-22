@@ -1,5 +1,7 @@
-import cv2
 from typing import List, Tuple
+
+import cv2
+
 
 def enumerate_video_devices(index: int = 0) -> List[Tuple[int, str]]:
     """
