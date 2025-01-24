@@ -4,7 +4,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Callable, Dict, Optional, Union
 
-logger = logging.getLogger(__name__)
+root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
+logger = logging.getLogger(root_package_name)
 
 # Type aliases for JSON data and request handling
 JsonDict = Dict[str, Any]

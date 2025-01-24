@@ -10,7 +10,8 @@ from typing import Callable, Optional
 import pyaudio
 import requests
 
-logger = logging.getLogger(__name__)
+root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
+logger = logging.getLogger(root_package_name)
 
 
 class AudioOutputStream:

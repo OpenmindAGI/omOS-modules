@@ -1,9 +1,11 @@
-import pytest
-from unittest.mock import Mock, patch
-import numpy as np
 import time
+from unittest.mock import Mock, patch
+
+import numpy as np
+import pytest
 
 from omOS_vlm import VideoStream
+
 
 class MockVideoCapture:
     def __init__(self, device_index):
@@ -18,7 +20,7 @@ class MockVideoCapture:
         return is_open
 
     def getBackendName(self):
-        return 'Mock'
+        return "Mock"
 
     def read(self):
         if not self.is_opened:
@@ -34,13 +36,15 @@ class MockVideoCapture:
         self.is_opened = False
         self.release_called = True
 
+
 @pytest.fixture
 def mock_cv2():
-    with patch('cv2.VideoCapture', MockVideoCapture) as mock:
-        with patch('cv2.imencode') as mock_imencode:
+    with patch("cv2.VideoCapture", MockVideoCapture) as mock:
+        with patch("cv2.imencode") as mock_imencode:
             # Mock imencode to return a simple base64 string
-            mock_imencode.return_value = (True, b'fake_image_data')
+            mock_imencode.return_value = (True, b"fake_image_data")
             yield mock
+
 
 @pytest.fixture
 def mock_camera():
@@ -54,7 +58,7 @@ def mock_camera():
             return self.is_opened
 
         def getBackendName(self):
-            return 'Mock'
+            return "Mock"
 
         def read(self):
             if not self.is_opened:
@@ -74,33 +78,42 @@ def mock_camera():
 
     return MockVideoCapture
 
+
 @pytest.fixture(autouse=True)
 def mock_video_dependencies(mock_camera):
-    with patch('cv2.VideoCapture', mock_camera), \
-         patch('cv2.imencode', return_value=(True, b'fake_frame_data')), \
-         patch('omOS_vlm.video.video_stream.enumerate_video_devices',
-               return_value=[(0, 'Mock Camera')]), \
-         patch('platform.system', return_value='Linux'):
+    with (
+        patch("cv2.VideoCapture", mock_camera),
+        patch("cv2.imencode", return_value=(True, b"fake_frame_data")),
+        patch(
+            "omOS_vlm.video.video_stream.enumerate_video_devices",
+            return_value=[(0, "Mock Camera")],
+        ),
+        patch("platform.system", return_value="Linux"),
+    ):
         yield
+
 
 @pytest.fixture
 def mock_platform():
-    with patch('platform.system') as mock:
-        mock.return_value = 'Linux'
+    with patch("platform.system") as mock:
+        mock.return_value = "Linux"
         yield mock
+
 
 @pytest.fixture
 def mock_enumerate_devices():
-    with patch('omOS_vlm.enumerate_video_devices') as mock:
-        mock.return_value = [(0, 'Test Camera')]
+    with patch("omOS_vlm.enumerate_video_devices") as mock:
+        mock.return_value = [(0, "Test Camera")]
         yield mock
+
 
 def test_video_stream_initialization():
     callback = Mock()
     stream = VideoStream(frame_callback=callback)
     assert stream.frame_callback == callback
-    assert stream.running == True
+    assert stream.running
     assert stream._video_thread is None
+
 
 @pytest.mark.usefixtures("mock_cv2", "mock_platform", "mock_enumerate_devices")
 def test_video_stream_start_stop():
@@ -114,11 +127,13 @@ def test_video_stream_start_stop():
 
     # Let it run briefly
     import time
+
     time.sleep(0.1)
 
     # Stop the video stream
     stream.stop()
-    assert stream.running == False
+    assert not stream.running
+
 
 def test_frame_callback():
     received_frames = []
@@ -127,17 +142,22 @@ def test_frame_callback():
         received_frames.append(frame_data)
 
     # Set up all mocks before creating VideoStream
-    mock_devices = [(0, 'Mock Camera')]
+    mock_devices = [(0, "Mock Camera")]
 
-    with patch('omOS_vlm.video.video_stream.enumerate_video_devices', return_value=mock_devices), \
-         patch('platform.system', return_value='Linux'):
-
+    with (
+        patch(
+            "omOS_vlm.video.video_stream.enumerate_video_devices",
+            return_value=mock_devices,
+        ),
+        patch("platform.system", return_value="Linux"),
+    ):
         # Create mock camera AFTER platform and devices are mocked
-        mock_cap = MockVideoCapture('/dev/video0')
+        mock_cap = MockVideoCapture("/dev/video0")
 
-        with patch('cv2.VideoCapture', return_value=mock_cap) as mock_capture, \
-             patch('cv2.imencode', return_value=(True, b'fake_image_data')):
-
+        with (
+            patch("cv2.VideoCapture", return_value=mock_cap) as mock_capture,
+            patch("cv2.imencode", return_value=(True, b"fake_image_data")),
+        ):
             # Create and start the video stream
             stream = VideoStream(frame_callback=callback)
             stream.start()
@@ -157,21 +177,23 @@ def test_frame_callback():
             assert len(received_frames) > 0, "No frames were received"
             assert isinstance(received_frames[0], str), "Frame data is not a string"
 
+
 @pytest.mark.usefixtures("mock_cv2", "mock_platform", "mock_enumerate_devices")
 def test_camera_device_selection():
     stream = VideoStream()
 
     # Test Linux camera selection
-    with patch('platform.system', return_value='Linux'):
+    with patch("platform.system", return_value="Linux"):
         stream.start()
         assert stream._video_thread is not None
     stream.stop()
 
     # Test macOS camera selection
-    with patch('platform.system', return_value='Darwin'):
+    with patch("platform.system", return_value="Darwin"):
         stream.start()
         assert stream._video_thread is not None
     stream.stop()
+
 
 def test_register_frame_callback():
     stream = VideoStream()
@@ -179,10 +201,11 @@ def test_register_frame_callback():
     stream.register_frame_callback(callback)
     assert stream.frame_callback == callback
 
+
 @pytest.mark.usefixtures("mock_cv2", "mock_platform", "mock_enumerate_devices")
 def test_error_handling():
     # Test with a mock that simulates camera not found
-    with patch('cv2.VideoCapture') as mock_cap:
+    with patch("cv2.VideoCapture") as mock_cap:
         mock_cap.return_value.isOpened.return_value = False
 
         stream = VideoStream()
@@ -190,6 +213,7 @@ def test_error_handling():
 
         # Let it try to initialize
         import time
+
         time.sleep(0.1)
 
         # Verify error handling

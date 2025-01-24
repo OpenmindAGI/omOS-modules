@@ -1,26 +1,30 @@
-import pytest
 import asyncio
-import websockets
-from unittest.mock import Mock
 import random
+from unittest.mock import Mock
+
+import pytest
+import websockets
 
 from omOS_utils.ws import Server
+
 
 def get_free_port():
     """Get a random port number between 6790 and 7000."""
     return random.randint(6790, 7000)
+
 
 async def wait_for_server(host, port, timeout=5):
     """Wait for server to become available."""
     start_time = asyncio.get_event_loop().time()
     while True:
         try:
-            async with websockets.connect(f'ws://{host}:{port}', close_timeout=0.1) as ws:
+            async with websockets.connect(f"ws://{host}:{port}", close_timeout=0.1):
                 return True
-        except:
+        except Exception:
             if asyncio.get_event_loop().time() - start_time > timeout:
                 return False
             await asyncio.sleep(0.1)
+
 
 @pytest.fixture
 def event_loop():
@@ -29,13 +33,12 @@ def event_loop():
     yield loop
     loop.close()
 
+
 @pytest.fixture
 def server_config():
     """Provide server configuration."""
-    return {
-        "host": "localhost",
-        "port": get_free_port()
-    }
+    return {"host": "localhost", "port": get_free_port()}
+
 
 @pytest.fixture
 async def server(server_config):
@@ -53,14 +56,16 @@ async def server(server_config):
     server_instance.stop()
     await asyncio.sleep(0.2)
 
+
 @pytest.fixture
 async def websocket_client(server, server_config):
     """Fixture to create a WebSocket client connection."""
-    uri = f'ws://{server_config["host"]}:{server_config["port"]}'
+    uri = f"ws://{server_config['host']}:{server_config['port']}"
 
     async with websockets.connect(uri, close_timeout=0.1) as websocket:
         await asyncio.sleep(0.2)  # Wait for connection to establish
         yield websocket
+
 
 @pytest.mark.asyncio
 async def test_server_start_stop(server_config):
@@ -76,6 +81,7 @@ async def test_server_start_stop(server_config):
     assert server.running is False
     await asyncio.sleep(0.2)
 
+
 @pytest.mark.asyncio
 async def test_client_connection(server_config):
     """Test client connection and disconnection."""
@@ -88,8 +94,8 @@ async def test_client_connection(server_config):
     connection_callback = Mock()
     server.register_connection_callback(connection_callback)
 
-    uri = f'ws://{server_config["host"]}:{server_config["port"]}'
-    async with websockets.connect(uri, close_timeout=0.1) as websocket:
+    uri = f"ws://{server_config['host']}:{server_config['port']}"
+    async with websockets.connect(uri, close_timeout=0.1):
         await asyncio.sleep(0.2)
         assert server.has_connections() is True
         assert len(server.connections) == 1
@@ -102,6 +108,7 @@ async def test_client_connection(server_config):
     server.stop()
     await asyncio.sleep(0.2)
 
+
 @pytest.mark.asyncio
 async def test_message_callback(server_config):
     """Test message callback functionality."""
@@ -113,7 +120,7 @@ async def test_message_callback(server_config):
     assert is_ready is True
 
     try:
-        uri = f'ws://{server_config["host"]}:{server_config["port"]}'
+        uri = f"ws://{server_config['host']}:{server_config['port']}"
         async with websockets.connect(uri, close_timeout=0.1) as websocket:
             await asyncio.sleep(0.2)  # Wait for connection to establish
 
@@ -136,6 +143,7 @@ async def test_message_callback(server_config):
         server.stop()
         await asyncio.sleep(0.2)
 
+
 @pytest.mark.asyncio
 async def test_handle_response(server_config):
     """Test sending messages to specific clients."""
@@ -147,7 +155,7 @@ async def test_handle_response(server_config):
     assert is_ready is True
 
     try:
-        uri = f'ws://{server_config["host"]}:{server_config["port"]}'
+        uri = f"ws://{server_config['host']}:{server_config['port']}"
         async with websockets.connect(uri, close_timeout=0.1) as websocket:
             await asyncio.sleep(0.2)  # Wait for connection to establish
 
@@ -164,6 +172,7 @@ async def test_handle_response(server_config):
         server.stop()
         await asyncio.sleep(0.2)
 
+
 @pytest.mark.asyncio
 async def test_handle_global_response(server_config):
     """Test broadcasting messages to all clients."""
@@ -173,10 +182,12 @@ async def test_handle_global_response(server_config):
     is_ready = await wait_for_server(server_config["host"], server_config["port"])
     assert is_ready is True
 
-    uri = f'ws://{server_config["host"]}:{server_config["port"]}'
+    uri = f"ws://{server_config['host']}:{server_config['port']}"
     try:
-        async with websockets.connect(uri, close_timeout=0.1) as client1, \
-                  websockets.connect(uri, close_timeout=0.1) as client2:
+        async with (
+            websockets.connect(uri, close_timeout=0.1) as client1,
+            websockets.connect(uri, close_timeout=0.1) as client2,
+        ):
             await asyncio.sleep(0.2)
 
             test_message = "Broadcast Message"
@@ -191,6 +202,7 @@ async def test_handle_global_response(server_config):
         server.stop()
         await asyncio.sleep(0.2)
 
+
 @pytest.mark.asyncio
 async def test_connection_closed_handling(server_config):
     """Test proper handling of connection closure."""
@@ -203,8 +215,8 @@ async def test_connection_closed_handling(server_config):
     connection_callback = Mock()
     server.register_connection_callback(connection_callback)
 
-    uri = f'ws://{server_config["host"]}:{server_config["port"]}'
-    async with websockets.connect(uri, close_timeout=0.1) as websocket:
+    uri = f"ws://{server_config['host']}:{server_config['port']}"
+    async with websockets.connect(uri, close_timeout=0.1):
         await asyncio.sleep(0.2)
         initial_connections = len(server.connections)
         assert initial_connections > 0
@@ -215,6 +227,7 @@ async def test_connection_closed_handling(server_config):
 
     server.stop()
     await asyncio.sleep(0.2)
+
 
 @pytest.mark.asyncio
 async def test_format_message():
