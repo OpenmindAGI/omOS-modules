@@ -1,22 +1,22 @@
-import pytest
-import pyaudio
-import threading
-import time
-import json
 import base64
-from unittest.mock import Mock, MagicMock, patch
+import json
+import time
 from queue import Queue
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from omOS_speech import AudioOutputStream
 
+
 @pytest.fixture
 def mock_pyaudio():
-    with patch('pyaudio.PyAudio') as mock:
+    with patch("pyaudio.PyAudio") as mock:
         # Setup default device info
         device_info = {
-            'name': 'Test Device',
-            'maxOutputChannels': 2,
-            'defaultSampleRate': 44100
+            "name": "Test Device",
+            "maxOutputChannels": 2,
+            "defaultSampleRate": 44100,
         }
 
         # Mock stream
@@ -31,26 +31,26 @@ def mock_pyaudio():
 
         yield mock
 
+
 @pytest.fixture
 def mock_requests():
-    with patch('requests.post') as mock:
+    with patch("requests.post") as mock:
         # Setup mock response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "response": base64.b64encode(b'test_audio_data').decode('utf-8')
+            "response": base64.b64encode(b"test_audio_data").decode("utf-8")
         }
         mock.return_value = mock_response
         yield mock
 
+
 @pytest.fixture
 def audio_output(mock_pyaudio, mock_requests):
-    stream = AudioOutputStream(
-        url="http://test-tts-server/tts",
-        rate=16000
-    )
+    stream = AudioOutputStream(url="http://test-tts-server/tts", rate=16000)
     yield stream
     stream.stop()
+
 
 def test_initialization(audio_output, mock_pyaudio):
     """Test AudioOutputStream initialization"""
@@ -64,20 +64,23 @@ def test_initialization(audio_output, mock_pyaudio):
     mock_pyaudio.assert_called_once()
     mock_pyaudio.return_value.open.assert_called_once()
 
+
 def test_device_selection_default(mock_pyaudio):
     """Test default device selection"""
-    stream = AudioOutputStream("http://test-tts-server/tts")
+    AudioOutputStream("http://test-tts-server/tts")
 
     # Verify device enumeration
     mock_pyaudio.return_value.get_device_count.assert_called_once()
     mock_pyaudio.return_value.get_device_info_by_index.assert_called()
 
+
 def test_device_selection_specific(mock_pyaudio):
     """Test specific device selection"""
-    stream = AudioOutputStream("http://test-tts-server/tts", device=1)
+    AudioOutputStream("http://test-tts-server/tts", device=1)
 
     # Verify specific device was selected
     mock_pyaudio.return_value.get_device_info_by_index.assert_called_with(1)
+
 
 def test_tts_callback(mock_pyaudio):
     """Test TTS state callback"""
@@ -88,8 +91,7 @@ def test_tts_callback(mock_pyaudio):
         callback_state = state
 
     stream = AudioOutputStream(
-        "http://test-tts-server/tts",
-        tts_state_callback=tts_callback
+        "http://test-tts-server/tts", tts_state_callback=tts_callback
     )
 
     stream._tts_callback(True)
@@ -100,10 +102,12 @@ def test_tts_callback(mock_pyaudio):
 
     stream.stop()
 
+
 def test_audio_processing(audio_output, mock_requests):
     """Test audio processing flow"""
     # Create a flag for callback verification
     callback_called = True
+
     def tts_callback(state):
         nonlocal callback_called
         callback_called = state
@@ -125,7 +129,7 @@ def test_audio_processing(audio_output, mock_requests):
         "http://test-tts-server/tts",
         data=json.dumps({"text": test_text}),
         headers={"Content-Type": "application/json"},
-        timeout=(5, 15)
+        timeout=(5, 15),
     )
 
     # Verify callback was triggered
@@ -133,6 +137,7 @@ def test_audio_processing(audio_output, mock_requests):
 
     # Verify callback was triggered
     assert callback_called is False
+
 
 def test_error_handling(audio_output, mock_requests):
     """Test error handling in audio processing"""
@@ -151,12 +156,14 @@ def test_error_handling(audio_output, mock_requests):
     # Verify stream is still running
     assert audio_output.running is True
 
+
 def test_stop(audio_output):
     """Test stopping the audio output stream"""
     audio_output.start()
     audio_output.stop()
 
     assert audio_output.running is False
+
 
 def test_empty_queue_handling(audio_output):
     """Test handling of empty queue"""
@@ -168,6 +175,7 @@ def test_empty_queue_handling(audio_output):
     # Verify stream is still running
     assert audio_output.running is True
 
+
 @pytest.mark.parametrize("rate", [8000, 16000, 44100])
 def test_different_sample_rates(mock_pyaudio, rate):
     """Test initialization with different sample rates"""
@@ -176,9 +184,10 @@ def test_different_sample_rates(mock_pyaudio, rate):
     # Verify stream was opened with correct rate
     mock_pyaudio.return_value.open.assert_called_once()
     call_args = mock_pyaudio.return_value.open.call_args[1]
-    assert call_args['rate'] == rate
+    assert call_args["rate"] == rate
 
     stream.stop()
+
 
 def test_add_multiple_items(audio_output):
     """Test adding multiple items to the queue"""

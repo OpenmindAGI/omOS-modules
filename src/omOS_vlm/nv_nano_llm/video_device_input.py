@@ -11,7 +11,8 @@ except ModuleNotFoundError:
 
 from ..video import enumerate_video_devices
 
-logger = logging.getLogger(__name__)
+root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
+logger = logging.getLogger(root_package_name)
 
 
 class VideoDeviceInput:

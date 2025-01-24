@@ -1,11 +1,13 @@
-import pytest
-from unittest.mock import Mock, MagicMock
-import threading
 import argparse
+import threading
 from typing import Optional
+from unittest.mock import MagicMock, Mock
 
-from omOS_speech.processor import ConnectionProcessor
+import pytest
+
 from omOS_speech.interfaces import ASRProcessorInterface, AudioStreamInputInterface
+from omOS_speech.processor import ConnectionProcessor
+
 
 class MockASRProcessor(ASRProcessorInterface):
     def __init__(self, args, callback=None):
@@ -22,6 +24,7 @@ class MockASRProcessor(ASRProcessorInterface):
     def stop(self) -> None:
         self.stopped = True
 
+
 class MockAudioStreamInput(AudioStreamInputInterface):
     def __init__(self):
         self.stopped = False
@@ -30,7 +33,7 @@ class MockAudioStreamInput(AudioStreamInputInterface):
     def handle_ws_incoming_message(self, connection_id: str, message: any) -> None:
         pass
 
-    def setup_audio_stream(self) -> 'AudioStreamInputInterface':
+    def setup_audio_stream(self) -> "AudioStreamInputInterface":
         self.setup_called = True
         return self
 
@@ -43,20 +46,16 @@ class MockAudioStreamInput(AudioStreamInputInterface):
     def add(self, callback: callable) -> None:
         pass
 
+
 @pytest.fixture
 def mock_args():
-    return argparse.Namespace(
-        sample_rate=16000,
-        channels=1
-    )
+    return argparse.Namespace(sample_rate=16000, channels=1)
+
 
 @pytest.fixture
 def connection_processor(mock_args):
-    return ConnectionProcessor(
-        mock_args,
-        MockASRProcessor,
-        MockAudioStreamInput
-    )
+    return ConnectionProcessor(mock_args, MockASRProcessor, MockAudioStreamInput)
+
 
 @pytest.fixture
 def mock_ws_server():
@@ -65,6 +64,7 @@ def mock_ws_server():
     server.register_message_callback = Mock()
     server.handle_response = Mock()
     return server
+
 
 def test_connection_processor_initialization(connection_processor):
     """Test that ConnectionProcessor initializes correctly"""
@@ -76,11 +76,13 @@ def test_connection_processor_initialization(connection_processor):
     assert isinstance(connection_processor.processing_threads, dict)
     assert connection_processor.ws_server is None
 
+
 def test_set_server(connection_processor, mock_ws_server):
     """Test setting the WebSocket server"""
     connection_processor.set_server(mock_ws_server)
     assert connection_processor.ws_server == mock_ws_server
     mock_ws_server.register_connection_callback.assert_called_once()
+
 
 def test_handle_new_connection(connection_processor, mock_ws_server):
     """Test handling a new connection"""
@@ -92,16 +94,23 @@ def test_handle_new_connection(connection_processor, mock_ws_server):
 
     # Verify ASR processor was created
     assert connection_id in connection_processor.asr_processors
-    assert isinstance(connection_processor.asr_processors[connection_id], MockASRProcessor)
+    assert isinstance(
+        connection_processor.asr_processors[connection_id], MockASRProcessor
+    )
 
     # Verify audio source was created and setup
     assert connection_id in connection_processor.audio_sources
-    assert isinstance(connection_processor.audio_sources[connection_id], MockAudioStreamInput)
+    assert isinstance(
+        connection_processor.audio_sources[connection_id], MockAudioStreamInput
+    )
     assert connection_processor.audio_sources[connection_id].setup_called
 
     # Verify thread was created and started
     assert connection_id in connection_processor.processing_threads
-    assert isinstance(connection_processor.processing_threads[connection_id], threading.Thread)
+    assert isinstance(
+        connection_processor.processing_threads[connection_id], threading.Thread
+    )
+
 
 def test_handle_connection_closed(connection_processor, mock_ws_server):
     """Test handling a connection being closed"""
@@ -125,6 +134,7 @@ def test_handle_connection_closed(connection_processor, mock_ws_server):
     assert connection_id not in connection_processor.audio_sources
     assert connection_id not in connection_processor.processing_threads
 
+
 def test_handle_connection_event(connection_processor, mock_ws_server):
     """Test handling different connection events"""
     connection_processor.set_server(mock_ws_server)
@@ -137,6 +147,7 @@ def test_handle_connection_event(connection_processor, mock_ws_server):
     # Test disconnect event
     connection_processor.handle_connection_event("disconnect", connection_id)
     assert connection_id not in connection_processor.asr_processors
+
 
 def test_stop(connection_processor, mock_ws_server):
     """Test stopping all connections"""
@@ -155,12 +166,16 @@ def test_stop(connection_processor, mock_ws_server):
     assert len(connection_processor.audio_sources) == 0
     assert len(connection_processor.processing_threads) == 0
 
-@pytest.mark.parametrize("connection_id", [
-    "test_conn_1",
-    "test_conn_2",
-    "",  # Test empty string connection ID
-    "123456789"  # Test numeric string connection ID
-])
+
+@pytest.mark.parametrize(
+    "connection_id",
+    [
+        "test_conn_1",
+        "test_conn_2",
+        "",  # Test empty string connection ID
+        "123456789",  # Test numeric string connection ID
+    ],
+)
 def test_connection_lifecycle(connection_processor, mock_ws_server, connection_id):
     """Test the complete lifecycle of a connection with different connection IDs"""
     connection_processor.set_server(mock_ws_server)
