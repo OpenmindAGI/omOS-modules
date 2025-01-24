@@ -1,9 +1,10 @@
+import logging
+
 from omOS_speech import AudioInputStream
 from omOS_utils import ws
 
-import logging
-
-logger = logging.getLogger(__name__)
+root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
+logger = logging.getLogger(root_package_name)
 logging.basicConfig(level=logging.INFO)
 
 # ws client

@@ -1,9 +1,11 @@
-import pytest
-from unittest.mock import Mock, ANY
-import threading
 import argparse
+import threading
+from unittest.mock import ANY, Mock
+
+import pytest
 
 from omOS_vlm import ConnectionProcessor
+
 
 @pytest.fixture
 def mock_components():
@@ -11,6 +13,7 @@ def mock_components():
     mock_vlm_processor = Mock()
     mock_video_stream = Mock()
     return mock_vlm_processor, mock_video_stream
+
 
 @pytest.fixture
 def processor(mock_components):
@@ -21,7 +24,7 @@ def processor(mock_components):
     processor = ConnectionProcessor(
         args,
         vlm_processor_class=lambda *args, **kwargs: mock_vlm_processor,
-        video_stream_input_class=lambda: mock_video_stream
+        video_stream_input_class=lambda: mock_video_stream,
     )
 
     # Set up mock WebSocket server
@@ -33,10 +36,12 @@ def processor(mock_components):
 
     return processor
 
+
 def test_set_server(processor):
     """Test WebSocket server initialization."""
     # Verify that connection callback was registered
     processor.mock_ws_server.register_connection_callback.assert_called_once()
+
 
 def test_handle_new_connection(processor, mock_components):
     """Test handling of new WebSocket connections."""
@@ -52,22 +57,18 @@ def test_handle_new_connection(processor, mock_components):
     # Verify video source was created and configured
     assert connection_id in processor.video_sources
     mock_video_stream.setup_video_stream.assert_called_once_with(
-        processor.args,
-        mock_vlm_processor.on_video
+        processor.args, mock_vlm_processor.on_video
     )
 
     # Verify message callback was registered
     processor.mock_ws_server.register_message_callback.assert_called_once_with(
-        connection_id,
-        ANY
+        connection_id, ANY
     )
 
     # Verify processing thread was created and started
     assert connection_id in processor.processing_threads
-    assert isinstance(
-        processor.processing_threads[connection_id],
-        threading.Thread
-    )
+    assert isinstance(processor.processing_threads[connection_id], threading.Thread)
+
 
 def test_handle_connection_closed(processor, mock_components):
     """Test cleanup when connection closes."""
@@ -91,17 +92,19 @@ def test_handle_connection_closed(processor, mock_components):
     # Verify processing thread was removed
     assert connection_id not in processor.processing_threads
 
+
 def test_handle_connection_event(processor, mock_components):
     """Test connection event handling."""
     connection_id = "test_conn_1"
 
     # Test connect event
-    processor.handle_connection_event('connect', connection_id)
+    processor.handle_connection_event("connect", connection_id)
     assert connection_id in processor.vlm_processors
 
     # Test disconnect event
-    processor.handle_connection_event('disconnect', connection_id)
+    processor.handle_connection_event("disconnect", connection_id)
     assert connection_id not in processor.vlm_processors
+
 
 def test_stop(processor, mock_components):
     """Test stopping all connections."""
@@ -124,12 +127,18 @@ def test_stop(processor, mock_components):
     assert mock_vlm_processor.stop.call_count == len(connection_ids)
     assert mock_video_stream.stop.call_count == len(connection_ids)
 
-@pytest.mark.parametrize("connection_id,expected_vlm_count", [
-    ("test_1", 1),
-    ("test_2", 1),
-    ("test_with_special_chars_#@!", 1),
-])
-def test_connection_creation_parameterized(processor, mock_components, connection_id, expected_vlm_count):
+
+@pytest.mark.parametrize(
+    "connection_id,expected_vlm_count",
+    [
+        ("test_1", 1),
+        ("test_2", 1),
+        ("test_with_special_chars_#@!", 1),
+    ],
+)
+def test_connection_creation_parameterized(
+    processor, mock_components, connection_id, expected_vlm_count
+):
     """Test connection creation with different connection IDs."""
     processor.handle_new_connection(connection_id)
     assert len(processor.vlm_processors) == expected_vlm_count
