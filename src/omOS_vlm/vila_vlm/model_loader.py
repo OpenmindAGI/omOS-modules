@@ -63,7 +63,7 @@ class VILAModelLoader:
             If model loading fails.
         """
         try:
-            model = llava.load("Efficient-Large-Model/VILA1.5-3B")
+            model = llava.load(self.args.vila_model_path)
             model.to("cuda")
             clib.default_conversation = clib.conv_templates["vicuna_v1"].copy()
             assert model
