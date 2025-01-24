@@ -17,7 +17,7 @@ omOS_tts = "omOS_speech.audio.audio_output_stream:main"
 python = ">=3.9"
 pyaudio = "^0.2.13"
 numpy = "^2.0.2"
-websockets = "^14.0"
+websockets = "^13.0"
 opencv-python = "^4.5.0"
 requests = "^2.32.3"
 
