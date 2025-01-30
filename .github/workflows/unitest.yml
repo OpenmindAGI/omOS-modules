@@ -42,7 +42,7 @@ jobs:
           poetry run pytest --log-cli-level=DEBUG -s
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-${{ runner.os }}
