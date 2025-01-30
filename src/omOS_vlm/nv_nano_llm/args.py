@@ -121,7 +121,7 @@ class NanoLLMArgParser(argparse.ArgumentParser):
             self.add_argument(
                 "--max-new-tokens",
                 type=int,
-                default=32,
+                default=120,
                 help="the maximum number of new tokens to generate, in addition to the prompt",
             )
             self.add_argument(
