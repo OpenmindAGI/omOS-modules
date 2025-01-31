@@ -162,7 +162,7 @@ class AudioOutputStream:
 
                         self.stream.write(audio_bytes)
 
-                        time.sleep(0.5)
+                        time.sleep(1)
 
                         self._tts_callback(False)
 
