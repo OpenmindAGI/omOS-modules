@@ -4,7 +4,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from om1_vlm import ConnectionProcessor
+from OM1_vlm import ConnectionProcessor
 
 
 @pytest.fixture

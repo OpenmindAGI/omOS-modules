@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 import websockets
 
-from om1_utils.ws import Server
+from OM1_utils.ws import Server
 
 
 def get_free_port():

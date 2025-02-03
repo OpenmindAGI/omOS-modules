@@ -1,7 +1,7 @@
 import argparse
 from typing import Dict, List, Optional
 
-from om1_utils import singleton
+from OM1_utils import singleton
 
 from .config import (
     MODEL_CONFIGS,
