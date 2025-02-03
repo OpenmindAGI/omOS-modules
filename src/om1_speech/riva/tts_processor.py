@@ -61,7 +61,7 @@ class TTSProcessor:
 
         # hot load the model
         try:
-            self.generate_tts("omOS is ready")
+            self.generate_tts("om1 is ready")
         except Exception as e:
             logger.error(f"Error initializing TTS model: {e}")
 

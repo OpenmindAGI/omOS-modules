@@ -1,6 +1,6 @@
 services:
-  omOS_vlm:
-    image: openmindagi/omos_nano_llm:latest
+  om1_vlm:
+    image: openmindagi/om1_nano_llm:latest
     build:
       context: ../../
       dockerfile: docker/Dockerfile.nano_llm

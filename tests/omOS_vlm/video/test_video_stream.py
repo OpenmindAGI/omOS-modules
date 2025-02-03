@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from omOS_vlm import VideoStream
+from om1_vlm import VideoStream
 
 
 class MockVideoCapture:
@@ -85,7 +85,7 @@ def mock_video_dependencies(mock_camera):
         patch("cv2.VideoCapture", mock_camera),
         patch("cv2.imencode", return_value=(True, b"fake_frame_data")),
         patch(
-            "omOS_vlm.video.video_stream.enumerate_video_devices",
+            "om1_vlm.video.video_stream.enumerate_video_devices",
             return_value=[(0, "Mock Camera")],
         ),
         patch("platform.system", return_value="Linux"),
@@ -102,7 +102,7 @@ def mock_platform():
 
 @pytest.fixture
 def mock_enumerate_devices():
-    with patch("omOS_vlm.enumerate_video_devices") as mock:
+    with patch("om1_vlm.enumerate_video_devices") as mock:
         mock.return_value = [(0, "Test Camera")]
         yield mock
 
@@ -146,7 +146,7 @@ def test_frame_callback():
 
     with (
         patch(
-            "omOS_vlm.video.video_stream.enumerate_video_devices",
+            "om1_vlm.video.video_stream.enumerate_video_devices",
             return_value=mock_devices,
         ),
         patch("platform.system", return_value="Linux"),

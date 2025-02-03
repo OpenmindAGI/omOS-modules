@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from omOS_speech import AudioOutputStream
+from om1_speech import AudioOutputStream
 
 
 @pytest.fixture

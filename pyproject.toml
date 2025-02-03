@@ -1,17 +1,17 @@
 [tool.poetry]
-name = "omOS_modules"
+name = "om1_modules"
 version = "0.1.0"
-description = "ML modules for omOS"
+description = "ML modules for om1"
 authors = ["openmind.org"]
 readme = "README.md"
 packages = [
-    { include = "omOS_speech", from = "src" },
-    { include = "omOS_utils", from = "src" },
-    { include = "omOS_vlm", from = "src" }
+    { include = "om1_speech", from = "src" },
+    { include = "om1_utils", from = "src" },
+    { include = "om1_vlm", from = "src" }
 ]
 
 [tool.poetry.scripts]
-omOS_tts = "omOS_speech.audio.audio_output_stream:main"
+om1_tts = "om1_speech.audio.audio_output_stream:main"
 
 [tool.poetry.dependencies]
 python = ">=3.9"

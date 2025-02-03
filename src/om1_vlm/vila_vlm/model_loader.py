@@ -2,7 +2,7 @@ import argparse
 import logging
 from typing import Any, Optional
 
-from omOS_utils import singleton
+from om1_utils import singleton
 
 # llava is only on VILA server
 # The dependency (bitsandbytes) is not available for Mac M chips

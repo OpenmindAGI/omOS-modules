@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Any, Optional
 
-from omOS_utils import ws
+from om1_utils import ws
 
 from .config import ConfigManager
 from .processor import ConnectionProcessor

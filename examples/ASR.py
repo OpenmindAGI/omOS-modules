@@ -1,7 +1,7 @@
 import logging
 
-from omOS_speech import AudioInputStream
-from omOS_utils import ws
+from om1_speech import AudioInputStream
+from om1_utils import ws
 
 root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
 logger = logging.getLogger(root_package_name)
