@@ -1,6 +1,6 @@
-# om1 Modules
+# OM1 Modules
 
-A Python package containing ML modules for om1, including speech processing, utilities, and vision-language capabilities.
+A Python package containing ML modules for OM1, including speech processing, utilities, and vision-language capabilities.
 
 ## Installation
 
