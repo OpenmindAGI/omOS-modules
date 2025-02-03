@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from OM1_utils.ws import Client
+from om1_utils.ws import Client
 
 
 @pytest.fixture

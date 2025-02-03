@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from OM1_speech.interfaces import ASRProcessorInterface, AudioStreamInputInterface
-from OM1_speech.processor import ConnectionProcessor
+from om1_speech.interfaces import ASRProcessorInterface, AudioStreamInputInterface
+from om1_speech.processor import ConnectionProcessor
 
 
 class MockASRProcessor(ASRProcessorInterface):

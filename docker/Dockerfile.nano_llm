@@ -6,4 +6,4 @@ COPY . .
 
 WORKDIR /app/src
 
-ENTRYPOINT ["python3", "-m", "OM1_vlm"]
+ENTRYPOINT ["python3", "-m", "om1_vlm"]

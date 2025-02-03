@@ -5,7 +5,7 @@ import logging
 import threading
 from typing import Dict, Optional
 
-from OM1_utils import ws
+from om1_utils import ws
 
 from ..interfaces import VideoStreamInputInterface, VLMProcessorInterface
 

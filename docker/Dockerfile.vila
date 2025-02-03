@@ -4,8 +4,8 @@ WORKDIR /app
 
 RUN git clone https://github.com/NVlabs/VILA.git . && git checkout 86e009759a14eee045c669421128d703227da362
 
-COPY ./src/OM1_vlm OM1_vlm
-COPY ./src/OM1_utils OM1_utils
+COPY ./src/om1_vlm om1_vlm
+COPY ./src/om1_utils om1_utils
 
 RUN curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o ~/miniconda.sh \
   && sh ~/miniconda.sh -b -p /opt/conda \
@@ -22,4 +22,4 @@ RUN conda run -n vila pip install -U "huggingface_hub[cli]" && \
 
 EXPOSE 6789
 
-CMD ["conda", "run", "-n", "vila", "--no-capture-output", "python", "-m", "OM1_vlm", "--model-name=vila", "--server-mode", "--ws-host=0.0.0.0"]
+CMD ["conda", "run", "-n", "vila", "--no-capture-output", "python", "-m", "om1_vlm", "--model-name=vila", "--server-mode", "--ws-host=0.0.0.0"]

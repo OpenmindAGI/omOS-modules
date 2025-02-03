@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Optional
 
-from OM1_utils import http, ws
+from om1_utils import http, ws
 
 # Audio input from microphone
 from .audio import AudioInputStream

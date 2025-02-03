@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from OM1_utils import http
+from om1_utils import http
 
 
 def find_free_port() -> int:

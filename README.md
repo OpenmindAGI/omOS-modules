@@ -1,6 +1,6 @@
-# OM1 Modules
+# om1 Modules
 
-A Python package containing ML modules for OM1, including speech processing, utilities, and vision-language capabilities.
+A Python package containing ML modules for om1, including speech processing, utilities, and vision-language capabilities.
 
 ## Installation
 
@@ -40,7 +40,7 @@ poetry shell
 To start the ASR module, run the following command:
 
 ```bash
-python3 -m OM1_speech --remote-url=wss://api-asr.openmind.org
+python3 -m om1_speech --remote-url=wss://api-asr.openmind.org
 ```
 
 #### Example code
@@ -56,20 +56,20 @@ python3 ./examples/ASR.py
 To start the TTS module, run the following  command:
 
 ```bash
-poetry run OM1_tts --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
+poetry run om1_tts --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
 ```
 
 #### Example code
 
-You can find the example code in [audio_output_stream.py](src/OM1_speech/audio/audio_output_stream.py). You can run it with the above command or using Python directly:
+You can find the example code in [audio_output_stream.py](src/om1_speech/audio/audio_output_stream.py). You can run it with the above command or using Python directly:
 
 ```bash
-python3  -m OM1_speech.audio.audio_output_stream --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
+python3  -m om1_speech.audio.audio_output_stream --tts-url=https://api-dev.openmind.org/api/core/tts --device=<optional> --rate=<optional>
 ```
 
 ## Modules
 
-### OM1 Speech
+### om1 Speech
 
 Speech processing module providing the following features:
 
@@ -77,7 +77,7 @@ Speech processing module providing the following features:
 - NVIDIA Riva ASR/TTS integration
 - WebSocket streaming support
 
-### OM1 Utils
+### om1 Utils
 
 Common utility functions for:
 
@@ -85,7 +85,7 @@ Common utility functions for:
 * WebSocket handling
 * Message formatting
 
-### OM1 VLM
+### om1 VLM
 
 Vision-Language Module offering:
 
@@ -100,8 +100,8 @@ Vision-Language Module offering:
 1. Clone the repository:
 
 	 ```bash
-	 git clone https://github.com/openmind-org/OM1-modules.git
-	 cd OM1-modules
+	 git clone https://github.com/openmind-org/om1-modules.git
+	 cd om1-modules
 	```
 
 2. Install dependencies using Poetry:
@@ -120,9 +120,9 @@ poetry add <package_name>
 
 ## Code Structure
 
-* *OM1_speech*: Contains speech processing modules.
-* *OM1_utils*: Utility functions for HTTP, WebSocket, and message handling.
-* *OM1_vlm*: Vision-language module with video stream and LLM support.
+* *om1_speech*: Contains speech processing modules.
+* *om1_utils*: Utility functions for HTTP, WebSocket, and message handling.
+* *om1_vlm*: Vision-language module with video stream and LLM support.
 
 ## Contributing
 
