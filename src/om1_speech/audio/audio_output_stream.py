@@ -86,12 +86,13 @@ class AudioOutputStream:
             elif self._device_name is not None:
                 for i in range(device_count):
                     device_info = self._audio_interface.get_device_info_by_index(i)
-                    if device_info["name"].lower() == self._device_name.lower():
+                    if (
+                        device_info["name"].lower() == self._device_name.lower()
+                        and device_info["maxOutputChannels"] > 0
+                    ):
                         output_device = device_info
                         self._device = i
                         break
-                    if device_info["maxOutputChannels"] == 0:
-                        raise ValueError(f"Device {i} has no output channels")
                 if output_device is None:
                     raise ValueError(
                         f"No output device found with name {self._device_name}"
