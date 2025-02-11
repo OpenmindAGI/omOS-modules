@@ -1,3 +1,3 @@
 from .healthcheck import HealthCheckServer
 
-__all__ = ['HealthCheckServer']
+__all__ = ["HealthCheckServer"]

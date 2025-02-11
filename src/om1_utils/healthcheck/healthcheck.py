@@ -1,15 +1,11 @@
-import logging
 import http.server
+import logging
 import socketserver
 import threading
-from queue import Empty, Queue
-from typing import Callable, Optional, Union
-
-import websockets
-from websockets.sync.client import connect
 
 root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
 logger = logging.getLogger(root_package_name)
+
 
 class HealthCheckHandler(http.server.SimpleHTTPRequestHandler):
     """Handler for health check requests."""
@@ -17,13 +13,13 @@ class HealthCheckHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests by returning a 200 OK status."""
         self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
+        self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(b"OK")
 
     def log_message(self, format, *args):
         """Override to use our logger instead of printing to stderr."""
-        logger.debug(f"Health check: {format%args}")
+        logger.debug(f"Health check: {format % args}")
 
 
 class HealthCheckServer:
@@ -53,7 +49,9 @@ class HealthCheckServer:
 
         def run_server():
             try:
-                with socketserver.TCPServer(("", self.port), HealthCheckHandler) as httpd:
+                with socketserver.TCPServer(
+                    ("", self.port), HealthCheckHandler
+                ) as httpd:
                     self.server = httpd
                     logger.info(f"Health check server started on port {self.port}")
                     httpd.serve_forever()
@@ -72,7 +70,6 @@ class HealthCheckServer:
             self.server.server_close()
             self.running = False
             logger.info("Health check server stopped")
-
 
     def is_running(self) -> bool:
         """

@@ -1,18 +1,11 @@
-import argparse
-import json
 import logging
-import os
-import tempfile
-import time
-from io import BytesIO
-from typing import Any, Callable, List, Optional
 import threading
 
 import torch
-from PIL import Image as PILImage
+
+from om1_utils import singleton
 
 from .model_loader import VILAModelLoader
-from om1_utils import singleton
 
 # llava is only on VILA server
 # The dependency (bitsandbytes) is not available for Mac M chips
@@ -31,6 +24,7 @@ except ModuleNotFoundError:
 
 root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
 logger = logging.getLogger(root_package_name)
+
 
 @singleton
 class VILAModelSingleton:
