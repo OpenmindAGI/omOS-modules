@@ -37,16 +37,16 @@ def audio_stream(mock_pyaudio):
     stream.stop()
 
 
-def test_initialization():
+def test_initialization(mock_pyaudio):
     """Test AudioInputStream initialization with default parameters"""
     stream = AudioInputStream()
     assert stream._rate == 16000
     assert stream._chunk == 4048
-    assert stream._device is None
+    assert stream._device == 0
     assert stream.running is True
     assert stream._is_tts_active is False
     assert isinstance(stream._buff, queue.Queue)
-    assert stream._audio_interface is None
+    assert stream._audio_interface is not None
     assert stream._audio_stream is None
     assert stream._audio_thread is None
 

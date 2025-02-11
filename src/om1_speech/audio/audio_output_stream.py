@@ -27,6 +27,9 @@ class AudioOutputStream:
     device : int, optional
         The output device index. If None, uses the first available output device
         (default: None)
+    device_name: str, optional
+        The output device name. If None, uses the first available output device
+        (default: None)
     tts_state_callback : Optional[Callable], optional
         A callback function to receive TTS state changes (active/inactive)
         (default: None)
@@ -37,11 +40,13 @@ class AudioOutputStream:
         url: str,
         rate: int = 8000,
         device: int = None,
+        device_name: str = None,
         tts_state_callback: Optional[Callable] = None,
     ):
         self._url = url
         self._rate = rate
         self._device = device
+        self._device_name = device_name
 
         # Callback for TTS state
         self._tts_state_callback = tts_state_callback
@@ -57,13 +62,41 @@ class AudioOutputStream:
 
         self.running: bool = True
 
+        if self._device is not None and self._device_name is not None:
+            logger.error("Only one of device or device_name can be specified")
+            raise ValueError("Only one of device or device_name can be specified")
+
         # Find a suitable output device
         try:
-            if self._device is None:
-                device_count = self._audio_interface.get_device_count()
-                logger.info(f"Found {device_count} audio devices")
+            output_device = None
+            device_count = self._audio_interface.get_device_count()
+            logger.info(f"Found {device_count} audio devices")
 
-                output_device = None
+            if self._device is not None:
+                device_info = self._audio_interface.get_device_info_by_index(
+                    self._device
+                )
+                logger.info(
+                    f"Selected output device: {device_info['name']} ({self._device})"
+                )
+                if device_info["maxOutputChannels"] == 0:
+                    raise ValueError("Selected output device has no output channels")
+                else:
+                    output_device = device_info
+            elif self._device_name is not None:
+                for i in range(device_count):
+                    device_info = self._audio_interface.get_device_info_by_index(i)
+                    if device_info["name"].lower() == self._device_name.lower():
+                        output_device = device_info
+                        self._device = i
+                        break
+                    if device_info["maxOutputChannels"] == 0:
+                        raise ValueError(f"Device {i} has no output channels")
+                if output_device is None:
+                    raise ValueError(
+                        f"No output device found with name {self._device_name}"
+                    )
+            else:
                 for i in range(device_count):
                     device_info = self._audio_interface.get_device_info_by_index(i)
                     logger.info(f"Device {i}: {device_info['name']}")
@@ -78,19 +111,10 @@ class AudioOutputStream:
 
                 if output_device is None:
                     raise ValueError("No output device found")
-            else:
-                device_info = self._audio_interface.get_device_info_by_index(
-                    self._device
-                )
-                logger.info(
-                    f"Selected output device: {device_info['name']} ({self._device})"
-                )
-                if device_info["maxOutputChannels"] == 0:
-                    raise ValueError("Selected output device has no output channels")
-                else:
-                    output_device = device_info
 
-            logger.info(f"Selected output device: {output_device['name']}")
+            logger.info(
+                f"Selected output device: {output_device['name']} at index {self._device}"
+            )
 
             self.stream = self._audio_interface.open(
                 output_device_index=self._device,
