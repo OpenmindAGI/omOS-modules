@@ -10,7 +10,7 @@ from typing import Any, Callable, List, Optional
 import torch
 from PIL import Image as PILImage
 
-from .model_loader import VILAModelLoader
+from .vila_model import VILAModelSingleton
 
 # llava is only on VILA server
 # The dependency (bitsandbytes) is not available for Mac M chips
@@ -53,14 +53,26 @@ class VILAProcessor:
         model_args: argparse.Namespace,
         callback: Optional[Callable[[str], None]] = None,
     ):
-        # Load the VILA model
-        self.model = self._initialize_model(model_args)
+        # Get or create the singleton model instance
+        self.model_singleton = VILAModelSingleton()
 
-        # Set model arguments and configuration
+        try:
+            # Initialize the model if not already initialized
+            self.model_singleton.initialize_model(model_args)
+        except Exception as e:
+            logger.error(f"Failed to initialize model: {e}")
+            raise
+
+        # Get the shared model instance
+        self.model = self.model_singleton.model
+
+        # Rest of the initialization
         self.model_args = model_args
+        self.callback = callback
+        self.image_buffer = []
+        self.response = ""
+        self.running = True
 
-        # This doesn't work on Mac M chips
-        self.model_config: Optional[GenerationConfig] = None
         try:
             self.model_config = GenerationConfig(
                 max_new_tokens=48,
@@ -70,55 +82,7 @@ class VILAProcessor:
             )
         except Exception as e:
             logger.error(f"Error initializing model configuration: {e}")
-
-        # Register the callback function
-        self.callback = callback
-
-        # Image processing variables
-        self.image_buffer: List[str] = []
-
-        # response variables
-        self.response: str = ""
-
-        # Set the running flag
-        self.running: bool = True
-
-        # Warm up the model
-        self._warmup_model()
-
-    def _initialize_model(self, args: argparse.Namespace):
-        """
-        Initialize the vision-language model.
-
-        Parameters
-        ----------
-        args : argparse.Namespace
-            Model configuration arguments
-
-        Returns
-        -------
-        PreTrainedModel
-            Initialized model instance
-
-        Raises
-        ------
-        AssertionError
-            If the model does not have vision capabilities
-        """
-        model_loader = VILAModelLoader(args)
-        return model_loader.model
-
-    def _warmup_model(self):
-        """
-        Perform model warmup with a simple query.
-
-        Sends a basic arithmetic query to ensure the model is loaded
-        and ready for processing.
-        """
-        self.model.generate_content(
-            ["What is the sum of 1 and 2?", "What is the sum of 3 and 4?"],
-            self.model_config,
-        )
+            raise
 
     def on_video(self, image: bytes) -> Any:
         """
@@ -189,6 +153,7 @@ class VILAProcessor:
                     prompt_list.append(Image(temp_file.name))
                 except Exception as e:
                     # Clean up any temporary files created so far
+                    logger.error(f"Error processing image: {e}")
                     for temp_path in temp_files:
                         if os.path.exists(temp_path):
                             os.unlink(temp_path)
@@ -199,8 +164,7 @@ class VILAProcessor:
             # Add text prompt
             prompt_list.append(prompt)
 
-            # Generate response
-            start = time.time() * 1000
+            # Generate response using shared model
             with torch.inference_mode():
                 response = self.model.generate_content(prompt_list, self.model_config)
             end = time.time() * 1000
