@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from queue import Empty, Queue
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import pyaudio
 import requests
@@ -54,8 +54,8 @@ class AudioOutputStream:
         # Audio interface
         self.stream: Optional[pyaudio.Stream] = None
 
-        # Pending output queue
-        self._pending_output: Queue[Optional[str]] = Queue()
+        # Pending requests queue
+        self._pending_requests: Queue[Optional[str]] = Queue()
 
         # Initialize audio interface
         self._audio_interface = pyaudio.PyAudio()
@@ -147,16 +147,16 @@ class AudioOutputStream:
         """
         self._tts_state_callback = callback
 
-    def add(self, audio_data: str):
+    def add_request(self, audio_request: Dict[str, str]):
         """
-        Add text to the TTS processing queue.
+        Add request to the TTS processing queue.
 
         Parameters
         ----------
-        audio_data : str
-            Text to be converted to speech
+        audio_request : Dict[str, str]
+            Request to be processed by the TTS service
         """
-        self._pending_output.put(audio_data)
+        self._pending_requests.put(audio_request)
 
     def _process_audio(self):
         """
@@ -167,10 +167,10 @@ class AudioOutputStream:
         """
         while self.running:
             try:
-                tts_input = self._pending_output.get_nowait()
+                tts_request = self._pending_requests.get_nowait()
                 response = requests.post(
                     self._url,
-                    data=json.dumps({"text": tts_input}),
+                    data=json.dumps(tts_request),
                     headers={"Content-Type": "application/json"},
                     timeout=(5, 15),
                 )
@@ -179,19 +179,8 @@ class AudioOutputStream:
                     result = response.json()
                     if "response" in result and self.stream:
                         audio_data = result["response"]
-                        audio_bytes = base64.b64decode(audio_data)
-
-                        logger.info(f"Received audio data: {len(audio_bytes)} bytes")
-
-                        self._tts_callback(True)
-
-                        self.stream.write(audio_bytes)
-
-                        time.sleep(1)
-
-                        self._tts_callback(False)
-
-                        logger.info(f"Processed TTS request: {tts_input}")
+                        self._write_audio(audio_data)
+                        logger.debug(f"Processed TTS request: {tts_request}")
                 else:
                     logger.error(
                         f"Error processing TTS request: {response.status_code}"
@@ -201,6 +190,26 @@ class AudioOutputStream:
             except Exception as e:
                 logger.error(f"Error processing audio: {e}")
                 continue
+
+    def _write_audio(self, audio_data: bytes):
+        """
+        Write audio data to the output stream.
+
+        Parameters
+        ----------
+        audio_data : bytes
+            The audio data to be written to the output stream
+        """
+        if self.stream:
+            audio_bytes = base64.b64decode(audio_data)
+
+            self._tts_callback(True)
+
+            self.stream.write(audio_bytes)
+
+            time.sleep(1)
+
+            self._tts_callback(False)
 
     def _tts_callback(self, is_active: bool):
         """
@@ -239,7 +248,7 @@ class AudioOutputStream:
                 user_input = input()
                 if user_input.lower() == "quit":
                     break
-                self.add(user_input)
+                self.add_request({"text": user_input})
         except KeyboardInterrupt:
             self.stop()
         finally:

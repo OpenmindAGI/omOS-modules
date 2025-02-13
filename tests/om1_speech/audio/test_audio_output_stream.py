@@ -57,7 +57,7 @@ def test_initialization(audio_output, mock_pyaudio):
     assert audio_output._rate == 16000
     assert audio_output._url == "http://test-tts-server/tts"
     assert audio_output.running is True
-    assert isinstance(audio_output._pending_output, Queue)
+    assert isinstance(audio_output._pending_requests, Queue)
     assert audio_output.stream is not None
 
     # Verify PyAudio initialization
@@ -119,7 +119,7 @@ def test_audio_processing(audio_output, mock_requests):
 
     # Add test input
     test_text = "Hello, world!"
-    audio_output.add(test_text)
+    audio_output.add_request({"text": test_text})
 
     # Wait a bit for processing
     time.sleep(0.1)
@@ -148,7 +148,7 @@ def test_error_handling(audio_output, mock_requests):
     audio_output.start()
 
     # Add test input
-    audio_output.add("Test error handling")
+    audio_output.add_request({"text": "Test error handling"})
 
     # Wait a bit for processing
     time.sleep(0.1)
@@ -191,17 +191,17 @@ def test_different_sample_rates(mock_pyaudio, rate):
 
 def test_add_multiple_items(audio_output):
     """Test adding multiple items to the queue"""
-    items = ["Test 1", "Test 2", "Test 3"]
+    items = [{"text": "Test 1"}, {"text": "Test 2"}, {"text": "Test 3"}]
 
     for item in items:
-        audio_output.add(item)
+        audio_output.add_request(item)
 
     # Verify items were added to queue
-    assert audio_output._pending_output.qsize() == len(items)
+    assert audio_output._pending_requests.qsize() == len(items)
 
     # Verify queue contents
     received_items = []
-    while not audio_output._pending_output.empty():
-        received_items.append(audio_output._pending_output.get())
+    while not audio_output._pending_requests.empty():
+        received_items.append(audio_output._pending_requests.get())
 
     assert received_items == items
