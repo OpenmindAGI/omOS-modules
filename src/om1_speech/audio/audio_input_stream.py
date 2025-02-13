@@ -89,17 +89,20 @@ class AudioInputStream:
                 if input_device["maxInputChannels"] == 0:
                     raise ValueError("Selected input device has no input channels")
             elif self._device_name is not None:
+                available_devices = []
                 for i in range(device_count):
                     device_info = self._audio_interface.get_device_info_by_index(i)
-                    if (
-                        device_info["name"] == self._device_name
-                        and device_info["maxInputChannels"] > 0
-                    ):
-                        input_device = device_info
-                        self._device = i
-                        break
+                    if device_info["maxInputChannels"] > 0:
+                        device_name = device_info["name"]
+                        available_devices.append({"name": device_name, "index": i})
+                        if device_name.lower() == self._device_name.lower():
+                            input_device = device_info
+                            self._device = i
+                            break
                 if input_device is None:
-                    raise ValueError(f"Input device '{self._device_name}' not found")
+                    raise ValueError(
+                        f"Input device '{self._device_name}' not found. Available devices: {available_devices}"
+                    )
             else:
                 input_device = self._audio_interface.get_default_input_device_info()
                 self._device = input_device["index"]
