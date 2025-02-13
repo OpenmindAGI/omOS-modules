@@ -33,6 +33,8 @@ class AudioOutputStream:
     tts_state_callback : Optional[Callable], optional
         A callback function to receive TTS state changes (active/inactive)
         (default: None)
+    headers : Optional[Dict[str, str]], optional
+        Additional headers to include in the HTTP request (default: None)
     """
 
     def __init__(
@@ -42,11 +44,17 @@ class AudioOutputStream:
         device: int = None,
         device_name: str = None,
         tts_state_callback: Optional[Callable] = None,
+        headers: Optional[Dict[str, str]] = None,
     ):
         self._url = url
         self._rate = rate
         self._device = device
         self._device_name = device_name
+
+        # Process headers
+        self._headers = headers or {}
+        if "Content-Type" not in self._headers:
+            self._headers["Content-Type"] = "application/json"
 
         # Callback for TTS state
         self._tts_state_callback = tts_state_callback
@@ -171,7 +179,7 @@ class AudioOutputStream:
                 response = requests.post(
                     self._url,
                     data=json.dumps(tts_request),
-                    headers={"Content-Type": "application/json"},
+                    headers=self._headers,
                     timeout=(5, 15),
                 )
                 logger.info(f"Received TTS response: {response.status_code}")
