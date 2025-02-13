@@ -192,7 +192,7 @@ class AudioOutputStream:
                         logger.debug(f"Processed TTS request: {tts_request}")
                 else:
                     logger.error(
-                        f"Error processing TTS request: {response.status_code}"
+                        f"TTS request failed with status code {response.status_code}: {response.text}. Request details: {tts_request}"
                     )
             except Empty:
                 continue
