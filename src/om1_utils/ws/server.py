@@ -9,6 +9,8 @@ from websockets import ConnectionClosed, WebSocketClientProtocol
 from websockets.asyncio.server import serve
 from websockets.exceptions import InvalidHandshake, InvalidUpgrade
 
+from ..healthcheck import HealthCheckServer
+
 root_package_name = __name__.split(".")[0] if "." in __name__ else __name__
 logger = logging.getLogger(root_package_name)
 
@@ -29,9 +31,13 @@ class Server:
         The hostname to bind the server to, by default "localhost"
     port : int, optional
         The port number to listen on, by default 6789
+    health_check_port : int, optional
+        The port for the health check server, by default 8888
     """
 
-    def __init__(self, host: str = "localhost", port: int = 6789):
+    def __init__(
+        self, host: str = "localhost", port: int = 6789, health_check_port: int = 8888
+    ):
         self.host = host
         self.port = port
         self.running: bool = True
@@ -41,6 +47,9 @@ class Server:
         self.global_queue: Queue[str | bytes] = Queue()
         self.connection_callback: Optional[Callable] = None
         self.message_callbacks: Dict[str, Optional[Callable]] = {}
+
+        # Initialize health check server
+        self.health_check = HealthCheckServer(port=health_check_port)
 
     def register_connection_callback(self, callback: Callable[[str, str], Any]):
         """
@@ -262,6 +271,9 @@ class Server:
         """
         Start the WebSocket server in a separate thread.
         """
+        # Start health check server
+        self.health_check.start()
+
         self.server_thread = threading.Thread(target=self._run_server, daemon=True)
         self.server_thread.start()
         logger.info("WebSocket server thread started")
@@ -307,3 +319,6 @@ class Server:
         Stop the WebSocket server.
         """
         self.running = False
+
+        if self.health_check.is_running():
+            self.health_check.stop()
