@@ -30,6 +30,9 @@ class AudioInputStream:
     device : Optional[Union[str, int, float, Any]], optional
         The input device identifier. Can be device index or name. If None,
         uses system default input device (default: None)
+    device_name: str, optional
+        The input device name. If None, uses the first available input device.
+        (default: None)
     audio_data_callback : Optional[Callable], optional
         A callback function that receives audio data chunks (default: None)
     """
@@ -39,11 +42,13 @@ class AudioInputStream:
         rate: int = 16000,
         chunk: int = 4048,
         device: Optional[Union[str, int, float, Any]] = None,
+        device_name: str = None,
         audio_data_callback: Optional[Callable] = None,
     ):
         self._rate = rate
         self._chunk = chunk
         self._device = device
+        self._device_name = device_name
 
         # Callback for audio data
         self.audio_data_callback = audio_data_callback
@@ -55,7 +60,7 @@ class AudioInputStream:
         self._buff: queue.Queue[Optional[bytes]] = queue.Queue()
 
         # audio interface and stream
-        self._audio_interface: Optional[pyaudio.PyAudio] = None
+        self._audio_interface: pyaudio.PyAudio = pyaudio.PyAudio()
         self._audio_stream: Optional[pyaudio.Stream] = None
 
         # Audio processing thread
@@ -65,6 +70,54 @@ class AudioInputStream:
         self._lock = threading.Lock()
 
         self.running: bool = True
+
+        if self._device is not None and self._device_name is not None:
+            raise ValueError("Only one of device or device_name can be specified")
+
+        try:
+            input_device = None
+            device_count = self._audio_interface.get_device_count()
+            logger.info(f"Found {device_count} audio devices")
+
+            if self._device is not None:
+                input_device = self._audio_interface.get_device_info_by_index(
+                    self._device
+                )
+                logger.info(
+                    f"Selected input device: {input_device['name']} ({self._device})"
+                )
+                if input_device["maxInputChannels"] == 0:
+                    raise ValueError("Selected input device has no input channels")
+            elif self._device_name is not None:
+                for i in range(device_count):
+                    device_info = self._audio_interface.get_device_info_by_index(i)
+                    if (
+                        device_info["name"] == self._device_name
+                        and device_info["maxInputChannels"] > 0
+                    ):
+                        input_device = device_info
+                        self._device = i
+                        break
+                if input_device is None:
+                    raise ValueError(f"Input device '{self._device_name}' not found")
+            else:
+                input_device = self._audio_interface.get_default_input_device_info()
+                self._device = input_device["index"]
+                logger.info(
+                    f"Default input device: {input_device['name']} ({self._device})"
+                )
+
+            if input_device is None:
+                raise ValueError("No input device found")
+
+            logger.info(
+                f"Selected input device: {input_device['name']} ({self._device})"
+            )
+
+        except Exception as e:
+            logger.error(f"Error initializing audio input: {e}")
+            self._audio_interface.terminate()
+            raise
 
     def on_tts_state_change(self, is_active: bool):
         """
@@ -101,25 +154,6 @@ class AudioInputStream:
         """
         if not self.running:
             return self
-
-        self._audio_interface = pyaudio.PyAudio()
-
-        # Get default device if none specified
-        if self._device is None:
-            try:
-                default_info = self._audio_interface.get_default_input_device_info()
-                self._device = default_info["index"]
-                logger.info(
-                    f"Default input device: {default_info['name']} ({self._device})"
-                )
-            except Exception as e:
-                logger.error(f"Error getting default input device: {e}")
-                self._device = None
-        else:
-            device_info = self._audio_interface.get_device_info_by_index(self._device)
-            logger.info(
-                f"Selected input device: {device_info['name']} ({self._device})"
-            )
 
         try:
             self._audio_stream = self._audio_interface.open(
