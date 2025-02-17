@@ -98,7 +98,7 @@ class AudioOutputStream:
                     if device_info["maxOutputChannels"] > 0:
                         device_name = device_info["name"]
                         available_devices.append({"name": device_name, "index": i})
-                        if device_name.lower() == self._device_name.lower():
+                        if self._device_name.lower() in device_name.lower():
                             output_device = device_info
                             self._device = i
                             break
