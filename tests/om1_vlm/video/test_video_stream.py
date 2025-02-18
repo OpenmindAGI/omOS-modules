@@ -177,8 +177,10 @@ def test_frame_callback():
             assert len(received_frames) > 0, "No frames were received"
             assert isinstance(received_frames[0], str), "Frame data is not a string"
 
+
 def test_frame_callback_coroutine():
     import asyncio
+
     received_frames = []
 
     async def async_frame_callback(frame_data):
