@@ -1,5 +1,7 @@
 import asyncio
+import asyncio
 import base64
+import inspect
 import inspect
 import logging
 import platform
@@ -63,6 +65,17 @@ class VideoStream:
         logger.debug("Starting background event loop for video streaming.")
         self.loop.run_forever()
 
+        # Create a dedicated event loop for async tasks
+        self.loop = asyncio.new_event_loop()
+        self.loop_thread = threading.Thread(target=self._start_loop, daemon=True)
+        self.loop_thread.start()
+
+    def _start_loop(self):
+        """Set and run the event loop forever in a dedicated thread."""
+        asyncio.set_event_loop(self.loop)
+        logger.debug("Starting background event loop for video streaming.")
+        self.loop.run_forever()
+
     def on_video(self):
         """
         Main video capture and processing loop.
@@ -102,7 +115,9 @@ class VideoStream:
 
                 if self.frame_callback:
                     if inspect.iscoroutinefunction(self.frame_callback):
-                        asyncio.run_coroutine_threadsafe(self.frame_callback(frame_data), self.loop)
+                        asyncio.run_coroutine_threadsafe(
+                            self.frame_callback(frame_data), self.loop
+                        )
                     else:
                         self.frame_callback(frame_data)
 
