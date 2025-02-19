@@ -178,6 +178,54 @@ def test_frame_callback():
             assert isinstance(received_frames[0], str), "Frame data is not a string"
 
 
+def test_frame_callback_coroutine():
+    import asyncio
+
+    received_frames = []
+
+    async def async_frame_callback(frame_data):
+        # Simulate asynchronous processing before handling the frame.
+        await asyncio.sleep(1)
+        received_frames.append(frame_data)
+
+    # Set up all mocks before creating VideoStream
+    mock_devices = [(0, "Mock Camera")]
+
+    with (
+        patch(
+            "om1_vlm.video.video_stream.enumerate_video_devices",
+            return_value=mock_devices,
+        ),
+        patch("platform.system", return_value="Linux"),
+    ):
+        # Create mock camera AFTER platform and devices are mocked
+        mock_cap = MockVideoCapture("/dev/video0")
+
+        with (
+            patch("cv2.VideoCapture", return_value=mock_cap) as mock_capture,
+            patch("cv2.imencode", return_value=(True, b"fake_image_data")),
+        ):
+            # Create and start the video stream
+            stream = VideoStream(frame_callback=async_frame_callback)
+            stream.start()
+
+            # Wait for frames
+            timeout = 2.0
+            start_time = time.time()
+            # The async callback should be called in parallel, so it should be higher than 2 (with 1s sleep)
+            while len(received_frames) <= 2 and time.time() - start_time < timeout:
+                time.sleep(0.5)
+
+            # Stop the stream
+            stream.stop()
+
+            # Verify results
+            assert mock_capture.called, "VideoCapture was never created"
+            assert mock_cap.release_called, "Camera release was never called"
+            assert len(received_frames) > 2, "Less than 2 frames were received"
+            assert isinstance(received_frames[0], str), "Frame data is not a string"
+
+
 @pytest.mark.usefixtures("mock_cv2", "mock_platform", "mock_enumerate_devices")
 def test_camera_device_selection():
     stream = VideoStream()
