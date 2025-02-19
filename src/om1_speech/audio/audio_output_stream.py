@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 import threading
-import time
 from queue import Empty, Queue
 from typing import Callable, Dict, Optional
 
@@ -216,9 +215,9 @@ class AudioOutputStream:
 
             self.stream.write(audio_bytes)
 
-            time.sleep(1)
-
+            self.stream.stop_stream()
             self._tts_callback(False)
+            self.stream.start_stream()
 
     def _tts_callback(self, is_active: bool):
         """
