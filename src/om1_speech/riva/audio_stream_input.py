@@ -39,6 +39,9 @@ class AudioStreamInput(AudioStreamInputInterface):
             expected to be binary audio data
         """
         try:
+            logger.info(f"Received audio message from connection {connection_id}")
+            logger.info(f"Message type: {type(message)}")
+
             # Verify we received binary data
             if isinstance(message, bytes):
                 logging.error("Legacy audio stream input. Set rate to 1600.")
