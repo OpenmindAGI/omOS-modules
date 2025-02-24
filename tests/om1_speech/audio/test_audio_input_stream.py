@@ -1,3 +1,5 @@
+import base64
+import json
 import queue
 import threading
 from unittest.mock import MagicMock, Mock, patch
@@ -178,7 +180,12 @@ def test_audio_callback(mock_pyaudio):
     next(stream.generator())
 
     # Verify callback was called with correct data
-    assert callback_data == {"audio": test_data, "rate": 16000}
+    assert callback_data == json.dumps(
+        {
+            "audio": base64.b64encode(test_data).decode("utf-8"),
+            "rate": 16000,
+        }
+    )
 
     stream.stop()
 
@@ -198,7 +205,10 @@ def test_error_handling(mock_pyaudio):
 def test_multiple_chunks_generation(audio_stream):
     """Test generating multiple chunks at once"""
     chunks = [b"chunk1", b"chunk2", b"chunk3"]
-    expected_data = {"audio": b"".join(chunks), "rate": 16000}
+    expected_data = {
+        "audio": base64.b64encode(b"".join(chunks)).decode("utf-8"),
+        "rate": 16000,
+    }
 
     # Add chunks in quick succession
     for chunk in chunks:

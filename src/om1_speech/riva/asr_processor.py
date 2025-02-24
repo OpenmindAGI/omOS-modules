@@ -114,8 +114,6 @@ class ASRProcessor(ASRProcessorInterface):
         while self.running:
             if audio_source:
                 data = audio_source.get_audio_chunk()
-                logging.info("Received audio data")
-                logging.info(f"Data type: {type(data)}")
                 if (
                     data
                     and isinstance(data, dict)
@@ -125,7 +123,6 @@ class ASRProcessor(ASRProcessorInterface):
                     if data["rate"] != self.args.asr_sample_rate_hz:
                         self.args.asr_sample_rate_hz = data["rate"]
                         self._initialize_model()
-                    logging.info("Yield audio data")
                     yield base64.b64decode(data["audio"])
             time.sleep(0.01)  # Small delay to prevent busy waiting
 
