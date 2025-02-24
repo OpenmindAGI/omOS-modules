@@ -1,7 +1,7 @@
 import json
 import logging
 from queue import Empty, Queue
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from ..interfaces import AudioStreamInputInterface
 
@@ -24,7 +24,7 @@ class AudioStreamInput(AudioStreamInputInterface):
 
     def __init__(self):
         self.running: bool = True
-        self.audio_queue: Queue[Optional[bytes]] = Queue()
+        self.audio_queue: Queue[Optional[Dict[str, Any]]] = Queue()
 
     def handle_ws_incoming_message(self, connection_id: str, message: Any):
         """
@@ -62,6 +62,7 @@ class AudioStreamInput(AudioStreamInputInterface):
                 if "rate" in message:
                     rate = message["rate"]
 
+                logging.info(f"Received audio data with rate: {rate}")
                 self.audio_queue.put({"audio": audio, "rate": rate})
             return
         except Exception as e:
@@ -78,9 +79,11 @@ class AudioStreamInput(AudioStreamInputInterface):
         """
         return self
 
-    def get_audio_chunk(self) -> Optional[bytes]:
+    def get_audio_chunk(self) -> Optional[Dict[str, Any]]:
         try:
-            return self.audio_queue.get_nowait()
+            data = self.audio_queue.get_nowait()
+            logging.info(f"Received audio data: {type(data)}")
+            return data
         except Empty:
             return None
 
