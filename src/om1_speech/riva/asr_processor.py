@@ -1,4 +1,5 @@
 import argparse
+import base64
 import json
 import logging
 import time
@@ -122,7 +123,7 @@ class ASRProcessor(ASRProcessorInterface):
                     if data["rate"] != self.args.asr_sample_rate_hz:
                         self.args.asr_sample_rate_hz = data["rate"]
                         self._initialize_model()
-                        yield data["audio"]
+                        yield base64.b64decode(data["audio"])
             time.sleep(0.01)  # Small delay to prevent busy waiting
 
     def process_audio(self, audio_source: Any):

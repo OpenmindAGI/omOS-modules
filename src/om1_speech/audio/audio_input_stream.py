@@ -1,6 +1,8 @@
 # Description: Audio stream class for capturing audio from a microphone
 # A partial of code comes from https://github.com/nvidia-riva/python-clients/blob/main/riva/client/audio_io.py
 
+import base64
+import json
 import logging
 import queue
 import threading
@@ -257,9 +259,12 @@ class AudioInputStream:
                 except queue.Empty:
                     break
 
-            response = {"audio": b"".join(data), "rate": self._rate}
+            response = {
+                "audio": base64.b64encode(b"".join(data)).decode("utf-8"),
+                "rate": self._rate,
+            }
             if self.audio_data_callback:
-                self.audio_data_callback(response)
+                self.audio_data_callback(json.dumps(response))
 
             yield response
 

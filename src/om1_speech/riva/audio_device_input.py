@@ -1,6 +1,7 @@
 # Description: Audio device input class for capturing audio from a microphone
 # A partial of code comes from https://github.com/nvidia-riva/python-clients/blob/main/riva/client/audio_io.py
 
+import base64
 import logging
 import queue
 from typing import Any, Callable, Dict, Optional, Tuple, Union
@@ -175,4 +176,7 @@ class AudioDeviceInput:
                 except queue.Empty:
                     break
 
-            return {"audio": b"".join(data), "rate": self._rate}
+            return {
+                "audio": base64.b64encode(b"".join(data)).decode("utf-8"),
+                "rate": self._rate,
+            }
