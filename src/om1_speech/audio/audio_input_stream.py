@@ -4,7 +4,7 @@
 import logging
 import queue
 import threading
-from typing import Any, Callable, Generator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
 
 import pyaudio
 
@@ -223,7 +223,7 @@ class AudioInputStream:
                 self._buff.put(in_data)
         return None, pyaudio.paContinue
 
-    def generator(self) -> Generator[bytes, None, None]:
+    def generator(self) -> Generator[Dict[str, Union[bytes, int]], None, None]:
         """
         Generates a stream of audio data chunks.
 
