@@ -87,18 +87,17 @@ class AudioInputStream:
                     f"Selected input device: {input_device['name']} ({self._device})"
                 )
                 if input_device["maxInputChannels"] == 0:
-                    raise ValueError("Selected input device has no input channels")
+                    logger.warn(f"Selected input device does not advertize input channels: {input_device['name']} ({self._device})")
             elif self._device_name is not None:
                 available_devices = []
                 for i in range(device_count):
                     device_info = self._audio_interface.get_device_info_by_index(i)
-                    if device_info["maxInputChannels"] > 0:
-                        device_name = device_info["name"]
-                        available_devices.append({"name": device_name, "index": i})
-                        if self._device_name.lower() in device_name.lower():
-                            input_device = device_info
-                            self._device = i
-                            break
+                    device_name = device_info["name"]
+                    available_devices.append({"name": device_name, "index": i})
+                    if self._device_name.lower() in device_name.lower():
+                        input_device = device_info
+                        self._device = i
+                        break
                 if input_device is None:
                     raise ValueError(
                         f"Input device '{self._device_name}' not found. Available devices: {available_devices}"
