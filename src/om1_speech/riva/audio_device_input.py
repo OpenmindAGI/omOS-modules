@@ -147,7 +147,7 @@ class AudioDeviceInput:
         self._buff.put(in_data)
         return None, pyaudio.paContinue
 
-    def get_audio_chunk(self) -> Optional[bytes]:
+    def get_audio_chunk(self) -> Optional[Dict[str, Union[bytes, int]]]:
         """
         Get the next chunk of audio data from the buffer.
 
@@ -175,4 +175,4 @@ class AudioDeviceInput:
                 except queue.Empty:
                     break
 
-            return b"".join(data)
+            return {"audio": b"".join(data), "rate": self._rate}

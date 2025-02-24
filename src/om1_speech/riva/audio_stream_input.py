@@ -1,3 +1,4 @@
+import json
 import logging
 from queue import Empty, Queue
 from typing import Any, Optional
@@ -39,12 +40,27 @@ class AudioStreamInput(AudioStreamInputInterface):
         """
         try:
             # Verify we received binary data
-            if not isinstance(message, bytes):
-                logger.error("Received non-binary message")
-                return
+            if isinstance(message, bytes):
+                logging.error("Legacy audio stream input. Set rate to 1600.")
+                self.audio_queue.put({"audio": message, "rate": 16000})
+            if isinstance(message, str):
+                try:
+                    message = json.loads(message)
+                except json.JSONDecodeError:
+                    logger.error("Error decoding JSON message")
+                    return
 
-            self.audio_queue.put(message)
+                if "audio" not in message:
+                    logger.error("Audio not found in message")
+                    return
+                audio = message["audio"]
 
+                rate = 16000
+                if "rate" in message:
+                    rate = message["rate"]
+
+                self.audio_queue.put({"audio": audio, "rate": rate})
+            return
         except Exception as e:
             logger.error(f"Error processing WebSocket message: {e}")
 

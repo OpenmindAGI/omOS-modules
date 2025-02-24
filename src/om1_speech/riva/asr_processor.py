@@ -98,7 +98,7 @@ class ASRProcessor(ASRProcessorInterface):
 
     def _yield_audio_chunks(self, audio_source: Any):
         """
-        Generate audio chunks from the audio source.
+        Generate audio data from the audio source.
 
         Parameters
         ----------
@@ -107,14 +107,22 @@ class ASRProcessor(ASRProcessorInterface):
 
         Yields
         ------
-        bytes
-            Audio chunks for processing
+        Dict[str, Union[bytes, int]]
+            A dictionary containing audio data and sample rate
         """
         while self.running:
             if audio_source:
-                chunk = audio_source.get_audio_chunk()
-                if chunk:
-                    yield chunk
+                data = audio_source.get_audio_chunk()
+                if (
+                    data
+                    and isinstance(data, dict)
+                    and "audio" in data
+                    and "rate" in data
+                ):
+                    if data["rate"] != self.args.asr_sample_rate_hz:
+                        self.args.asr_sample_rate_hz = data["rate"]
+                        self._initialize_model()
+                        yield data["audio"]
             time.sleep(0.01)  # Small delay to prevent busy waiting
 
     def process_audio(self, audio_source: Any):

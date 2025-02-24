@@ -87,7 +87,9 @@ class AudioInputStream:
                     f"Selected input device: {input_device['name']} ({self._device})"
                 )
                 if input_device["maxInputChannels"] == 0:
-                    logger.warn(f"Selected input device does not advertize input channels: {input_device['name']} ({self._device})")
+                    logger.warning(
+                        f"Selected input device does not advertize input channels: {input_device['name']} ({self._device})"
+                    )
             elif self._device_name is not None:
                 available_devices = []
                 for i in range(device_count):
@@ -255,10 +257,11 @@ class AudioInputStream:
                 except queue.Empty:
                     break
 
+            response = {"audio": b"".join(data), "rate": self._rate}
             if self.audio_data_callback:
-                self.audio_data_callback(b"".join(data))
+                self.audio_data_callback(response)
 
-            yield b"".join(data)
+            yield response
 
     def on_audio(self):
         """Audio processing loop"""
