@@ -26,9 +26,12 @@ class AudioInputStream:
     Parameters
     ----------
     rate : int, optional
-        The sampling rate in Hz for audio capture (default: 16000)
+        The sampling rate in Hz for audio capture. If None, uses the default rate of the selected device.
+        (default: None)
     chunk : int, optional
-        The size of each audio chunk in frames (default: 4048)
+        The size of each audio chunk in frames. If None, automatically calculates an optimal chunk size
+        based on the sample rate (approximately 100ms of audio).
+        (default: None)
     device : Optional[Union[str, int, float, Any]], optional
         The input device identifier. Can be device index or name. If None,
         uses system default input device (default: None)
@@ -41,8 +44,8 @@ class AudioInputStream:
 
     def __init__(
         self,
-        rate: int = 16000,
-        chunk: int = 4048,
+        rate: Optional[int] = None,
+        chunk: Optional[int] = None,
         device: Optional[Union[str, int, float, Any]] = None,
         device_name: str = None,
         audio_data_callback: Optional[Callable] = None,
@@ -119,6 +122,25 @@ class AudioInputStream:
             logger.info(
                 f"Selected input device: {input_device['name']} ({self._device})"
             )
+
+            if rate is None:
+                self._rate = int(input_device.get("defaultSampleRate", 16000))
+                logger.info(f"Using device default sample rate: {self._rate} Hz")
+            else:
+                self._rate = rate
+                logger.info(f"Using specified sample rate: {self._rate} Hz")
+
+            if chunk is None:
+                self._chunk = int(self._rate * 0.2)  # ~200ms of audio
+                logger.info(
+                    f"Using calculated chunk size: {self._chunk} frames (~200ms)"
+                )
+            else:
+                self._chunk = chunk
+                chunk_duration_ms = (self._chunk / self._rate) * 1000
+                logger.info(
+                    f"Using specified chunk size: {self._chunk} frames (~{chunk_duration_ms:.1f}ms)"
+                )
 
         except Exception as e:
             logger.error(f"Error initializing audio input: {e}")
