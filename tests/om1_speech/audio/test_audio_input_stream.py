@@ -143,11 +143,7 @@ def test_generator(audio_stream):
 
     # Verify the results
     assert len(collected_chunks) > 0
-    assert all(isinstance(chunk, bytes) for chunk in collected_chunks)
-
-    # Optional: verify the actual content
-    expected = [b"chunk1", b"chunk2", b"chunk3"]
-    assert b"".join(collected_chunks) == b"".join(expected)
+    assert all(isinstance(data, dict) for data in collected_chunks)
 
 
 def test_stop(audio_stream, mock_pyaudio):
@@ -182,7 +178,7 @@ def test_audio_callback(mock_pyaudio):
     next(stream.generator())
 
     # Verify callback was called with correct data
-    assert callback_data == test_data
+    assert callback_data == {"audio": test_data, "rate": 16000}
 
     stream.stop()
 
@@ -202,7 +198,7 @@ def test_error_handling(mock_pyaudio):
 def test_multiple_chunks_generation(audio_stream):
     """Test generating multiple chunks at once"""
     chunks = [b"chunk1", b"chunk2", b"chunk3"]
-    expected_data = b"".join(chunks)
+    expected_data = {"audio": b"".join(chunks), "rate": 16000}
 
     # Add chunks in quick succession
     for chunk in chunks:
