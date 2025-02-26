@@ -211,8 +211,10 @@ class AudioOutputStream:
             "-autoexit",
             "-",
             "-nodisp",
-            "-audio_device_index",
-            str(self._device),
+            # It is not good at supporting audio_device_index from pyaudio
+            # Reading the list from ffplay doesn't work either
+            # "-audio_device_index",
+            # str(self._device),
         ]
         proc = subprocess.Popen(
             args=args,
